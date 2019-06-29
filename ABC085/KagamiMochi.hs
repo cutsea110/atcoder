@@ -1,9 +1,10 @@
 module Main where
 
-import Control.Monad
-import Data.List
+import Control.Monad (replicateM)
+import Data.List (nub)
 
+main :: IO ()
 main = do
   n <- readLn
-  xs <- sequence $ take n $ repeat getLine
+  xs <- replicateM n getLine
   print $ length $ nub xs
