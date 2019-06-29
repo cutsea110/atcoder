@@ -1,17 +1,19 @@
 module Main where
 
 import Control.Arrow ((&&&))
-import Data.List
+import Data.List (isPrefixOf, reverse)
 
 isDream, isDreamer, isErase, isEraser :: String -> Bool
+restOfDream, restOfDreamer, restOfErase, restOfEraser :: String -> String
 [(isDream,   restOfDream),
  (isDreamer, restOfDreamer),
  (isErase,   restOfErase),
  (isEraser,  restOfEraser)] = map (isPrefixOf . reverse &&& drop . length) ["dream", "dreamer", "erase", "eraser"]
 
+
 exist :: String -> Bool
+exist [] = True
 exist sna
-  | null sna = True
   | isDream sna = exist $ restOfDream sna
   | isDreamer sna = exist $ restOfDreamer sna
   | isErase sna = exist $ restOfErase sna
