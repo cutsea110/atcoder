@@ -33,29 +33,27 @@ main = do
   ex <- getIntNList n
   print $ simulate 0 (ini ex)
 
-ini :: [[Int]] -> [(Int, (Int, [Int], State))]
+ini :: [[Int]] -> [(Int, (Int, [Int], Bool))]
 ini = zipWith (\i x -> (i, split' x)) [1..]
 
-data State = Progress | Keep | Done deriving (Show, Eq, Ord)
-
-step :: [(Int, (Int, [Int], State))] -> [(Int, (Int, [Int], State))]
+step :: [(Int, (Int, [Int], Bool))] -> [(Int, (Int, [Int], Bool))]
 step = zipWith f <$> (U.toList . hs) <*> id
   where
     hs = (U.map <$> f <*> id) . U.fromList . map (fst3.snd)
       where f xs h = if h == 0 then 0 else xs U.! (h-1)
     f h' !(i, (h, !t, s)) | h' == i = (i, split' t)
-                          | otherwise = (i, (h, t, max Keep s))
+                          | otherwise = (i, (h, t, False))
 
-simulate :: Int -> [(Int, (Int, [Int], State))] -> Int
-simulate n ex | any ((Progress==).thd3.snd) ex' = simulate (n+1) ex'
-              | all ((Done==).thd3.snd) ex' = n+1
+simulate :: Int -> [(Int, (Int, [Int], Bool))] -> Int
+simulate n ex | any (thd3.snd) ex' = simulate (n+1) ex'
+              | all ((0==).fst3.snd) ex' = n+1
               | otherwise = -1
   where !ex' = step ex
     
 
-split' :: [Int] -> (Int, [Int], State)
-split' [] = (0, [], Done)
-split' (x:xs) = (x, xs, Progress)
+split' :: [Int] -> (Int, [Int], Bool)
+split' [] = (0, [], False)
+split' (x:xs) = (x, xs, True)
 
 ex1 :: [[Int]]
 ex1 = [[2,3],[1,3],[1,2]]
