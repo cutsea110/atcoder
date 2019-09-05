@@ -4,39 +4,22 @@ module Main where
 
 import Control.Arrow
 import Control.Monad
+import Data.Char
 import Data.Maybe
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.ByteString.Char8 as C
 
-fst3 (x,_,_) = x
-snd3 (_,y,_) = y
-thd3 (_,_,z) = z
-
-tuplify2 (x:y:_) = (x,y)
-tuplify2 _ = undefined
-
---Input functions with ByteString
-readInt = fst . fromJust . C.readInt
-readIntTuple = tuplify2 . map readInt . C.words
-readIntList = map readInt . C.words
-
-getInt = readInt <$> C.getLine
-getIntList = readIntList <$> C.getLine
-getIntNList n = map readIntList <$> replicateM (fromIntegral n) C.getLine
-getIntMatrix = map readIntList . C.lines <$> C.getContents
-getIntTuple = readIntTuple <$> C.getLine
-getIntNTuples n = map readIntTuple <$> replicateM (fromIntegral n) C.getLine
-getIntTuples = map readIntTuple . C.lines <$> C.getContents
-
 main :: IO ()
 main = do
-  !n <- getInt
-  !ex <- getIntNList n
-  print $ simulate 0 (ini ex)
+  !n <- readLn :: IO Int
+  !mat <- U.unfoldrN (n*(n-1)) parseInt <$> C.getContents
+  let !ex = V.generate n $ \i -> U.slice (i*(n-1)) (n-1) mat
+  let !ex' = ini ex
+  print $ simulate 0 ex'
 
-ini :: [[Int]] -> (V.Vector (U.Vector Int), U.Vector (Int, Bool))
-ini = (fst &&& U.convert . snd) . V.unzip . V.fromList . map (split . U.fromList)
+ini :: V.Vector (U.Vector Int) -> (V.Vector (U.Vector Int), U.Vector (Int, Bool))
+ini = (fst &&& U.convert . snd) . V.unzip . V.map split
 
 step :: (V.Vector (U.Vector Int), U.Vector (Int, Bool)) -> (V.Vector (U.Vector Int), U.Vector (Int, Bool))
 step (!ts, !hs) = (fst &&& U.convert . snd) $ V.unzip $ V.zipWith f (V.convert h'h) ts
@@ -51,22 +34,34 @@ step (!ts, !hs) = (fst &&& U.convert . snd) $ V.unzip $ V.zipWith f (V.convert h
 
 simulate :: Int -> (V.Vector (U.Vector Int), U.Vector (Int, Bool)) -> Int
 simulate n ex | U.all (not.snd) h = -1
-               | U.any ((0/=).fst) h = simulate (n+1) ex'
-               | U.all ((0==).fst) h = n+1
+              | U.all ((0==).fst) h = n+1
+              | U.any ((0/=).fst) h = simulate (n+1) ex'
   where
     !ex'@(!t, !h) = step ex
 
 split :: U.Vector Int -> (U.Vector Int, (Int, Bool))
 split xxs = if U.null xxs then (U.empty, (0, False)) else (U.tail xxs, (U.head xxs, True))
 
-ex1 :: [[Int]]
-ex1 = [[2,3],[1,3],[1,2]]
+type Parser a = C.ByteString -> Maybe (a, C.ByteString)
 
-ex2 :: [[Int]]
-ex2 = [[2,3,4],[1,3,4],[4,1,2],[3,1,2]]
+parseInt :: Parser Int
+parseInt = C.readInt . C.dropWhile isSpace
 
-ex3 :: [[Int]]
-ex3 = [[2,3],[3,1],[1,2]]
+--
+
+ex1 :: V.Vector (U.Vector Int)
+ex1 = V.fromList $ map U.fromList [[2,3],[1,3],[1,2]]
+
+ex2 :: V.Vector (U.Vector Int)
+ex2 = V.fromList $ map U.fromList [[2,3,4],[1,3,4],[4,1,2],[3,1,2]]
+
+ex3 :: V.Vector (U.Vector Int)
+ex3 = V.fromList $ map U.fromList [[2,3],[3,1],[1,2]]
+
+ex4 :: V.Vector (U.Vector Int)
+ex4 = V.fromList $ map (\i -> U.fromList $ filter (i/=) ex) ex
+  where
+    ex = [1..1000]
 
 -- ex.1
 -- 3
