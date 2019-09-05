@@ -2,6 +2,7 @@ module Main where
 
 import Control.Monad
 import Data.Maybe
+import qualified Data.Vector.Unboxed as V
 import qualified Data.ByteString.Char8 as BS
 
 tuplify2 (x:y:_) = (x,y)
@@ -23,14 +24,24 @@ getIntTuples = map readIntTuple . BS.lines <$> BS.getContents
 main :: IO ()
 main = do
   n <- getInt
-  xss <- getIntNList n
-  print $ simulate 0 xss
+  ex <- getIntNList n
+  print $ simulate 0 (ini ex)
 
-simulate :: Int -> [[Int]] -> Int
-simulate n xs | xs == xs' = -1
-              | all null xs' = n+1
-              | otherwise = simulate (n+1) xs'
-  where xs' = step xs
+ini :: [[Int]] -> [(Int, (Int, [Int]))]
+ini xss = zipWith (\x i -> (i, (head' x, tail' x))) xss [1..]
+
+step :: [(Int, (Int, [Int]))] -> [(Int, (Int, [Int]))]
+step ihts = bs
+  where
+    hs = V.fromList $ map (fst.snd) ihts
+    hs' = V.map (\h -> if h == 0 then 0 else hs V.! (h-1)) hs
+    bs = zipWith (\h' (i, (h, t)) -> if h' == i then (i, (head' t, tail' t)) else (i, (h, t))) (V.toList hs') ihts
+
+simulate :: Int -> [(Int, (Int, [Int]))] -> Int
+simulate n ex | ex == ex' = -1
+              | all (((0,[])==).snd) ex' = n+1
+              | otherwise = simulate (n+1) ex'
+  where ex' = step ex
 
 head' :: [Int] -> Int
 head' [] = 0
@@ -40,16 +51,6 @@ tail' :: [Int] -> [Int]
 tail' [] = []
 tail' (_:xs) = xs
 
-step :: [[Int]] -> [[Int]]
-step xs = zipWith ($) (matching (map head' xs)) (map tail' xs)
-
-matching :: [Int] -> [[Int] -> [Int]]
-matching xs = zipWith f [1..] (map (\i -> if i == 0 then 0 else xs !! (i-1)) xs)
-  where
-    f i i' | i == i' || i' == 0 = id
-           | otherwise = let x' = xs !! (i-1) in (x':)
-
-{--
 ex1 :: [[Int]]
 ex1 = [[2,3],[1,3],[1,2]]
 
@@ -58,7 +59,7 @@ ex2 = [[2,3,4],[1,3,4],[4,1,2],[3,1,2]]
 
 ex3 :: [[Int]]
 ex3 = [[2,3],[3,1],[1,2]]
---}
+
 
 -- ex.1
 -- 3
