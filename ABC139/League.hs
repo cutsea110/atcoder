@@ -2,8 +2,10 @@
 {-# LANGUAGE BangPatterns #-}
 module Main where
 
+import Control.Arrow
 import Control.Monad
 import Data.Maybe
+import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
 import qualified Data.ByteString.Char8 as C
 
@@ -29,31 +31,33 @@ getIntTuples = map readIntTuple . C.lines <$> C.getContents
 
 main :: IO ()
 main = do
-  n <- getInt
-  ex <- getIntNList n
+  !n <- getInt
+  !ex <- getIntNList n
   print $ simulate 0 (ini ex)
 
-ini :: [[Int]] -> [(Int, (Int, [Int], Bool))]
-ini = zipWith (\i x -> (i, split' x)) [1..]
+ini :: [[Int]] -> (V.Vector (U.Vector Int), U.Vector (Int, Bool))
+ini = (fst &&& U.convert . snd) . V.unzip . V.fromList . map (split . U.fromList)
 
-step :: [(Int, (Int, [Int], Bool))] -> [(Int, (Int, [Int], Bool))]
-step = zipWith f <$> (U.toList . hs) <*> id
+step :: (V.Vector (U.Vector Int), U.Vector (Int, Bool)) -> (V.Vector (U.Vector Int), U.Vector (Int, Bool))
+step (!ts, !hs) = (fst &&& U.convert . snd) $ V.unzip $ V.zipWith f (V.convert h'h) ts
   where
-    hs = (U.map <$> f <*> id) . U.fromList . map (fst3.snd)
-      where f xs h = if h == 0 then 0 else xs U.! (h-1)
-    f h' !(i, (h, !t, s)) | h' == i = (i, split' t)
-                          | otherwise = (i, (h, t, False))
+     !h'h = U.map g (U.indexed hs)
+       where
+         g (!i, (!h, !b)) = let h' = fst (hs U.! (h-1))
+                            in if h == 0 || i+1 == h' then (0,h) else (h',h)
+     f (!h', !h) !t = if h' == 0 then (xs, (x, True)) else (t, (h, False))
+       where
+         (!x, !xs) = if U.null t then (0, t) else (U.head t, U.tail t)
 
-simulate :: Int -> [(Int, (Int, [Int], Bool))] -> Int
-simulate n ex | any (thd3.snd) ex' = simulate (n+1) ex'
-              | all ((0==).fst3.snd) ex' = n+1
-              | otherwise = -1
-  where !ex' = step ex
-    
+simulate :: Int -> (V.Vector (U.Vector Int), U.Vector (Int, Bool)) -> Int
+simulate n ex | U.all (not.snd) h = -1
+               | U.any ((0/=).fst) h = simulate (n+1) ex'
+               | U.all ((0==).fst) h = n+1
+  where
+    !ex'@(!t, !h) = step ex
 
-split' :: [Int] -> (Int, [Int], Bool)
-split' [] = (0, [], False)
-split' (x:xs) = (x, xs, True)
+split :: U.Vector Int -> (U.Vector Int, (Int, Bool))
+split xxs = if U.null xxs then (U.empty, (0, False)) else (U.tail xxs, (U.head xxs, True))
 
 ex1 :: [[Int]]
 ex1 = [[2,3],[1,3],[1,2]]
