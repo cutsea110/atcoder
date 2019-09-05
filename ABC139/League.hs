@@ -4,8 +4,8 @@ module Main where
 
 import Control.Monad
 import Data.Maybe
-import qualified Data.Vector.Unboxed as V
-import qualified Data.ByteString.Char8 as BS
+import qualified Data.Vector.Unboxed as U
+import qualified Data.ByteString.Char8 as C
 
 fst3 (x,_,_) = x
 snd3 (_,y,_) = y
@@ -15,17 +15,17 @@ tuplify2 (x:y:_) = (x,y)
 tuplify2 _ = undefined
 
 --Input functions with ByteString
-readInt = fst . fromJust . BS.readInt
-readIntTuple = tuplify2 . map readInt . BS.words
-readIntList = map readInt . BS.words
+readInt = fst . fromJust . C.readInt
+readIntTuple = tuplify2 . map readInt . C.words
+readIntList = map readInt . C.words
 
-getInt = readInt <$> BS.getLine
-getIntList = readIntList <$> BS.getLine
-getIntNList n = map readIntList <$> replicateM (fromIntegral n) BS.getLine
-getIntMatrix = map readIntList . BS.lines <$> BS.getContents
-getIntTuple = readIntTuple <$> BS.getLine
-getIntNTuples n = map readIntTuple <$> replicateM (fromIntegral n) BS.getLine
-getIntTuples = map readIntTuple . BS.lines <$> BS.getContents
+getInt = readInt <$> C.getLine
+getIntList = readIntList <$> C.getLine
+getIntNList n = map readIntList <$> replicateM (fromIntegral n) C.getLine
+getIntMatrix = map readIntList . C.lines <$> C.getContents
+getIntTuple = readIntTuple <$> C.getLine
+getIntNTuples n = map readIntTuple <$> replicateM (fromIntegral n) C.getLine
+getIntTuples = map readIntTuple . C.lines <$> C.getContents
 
 main :: IO ()
 main = do
@@ -34,15 +34,15 @@ main = do
   print $ simulate 0 (ini ex)
 
 ini :: [[Int]] -> [(Int, (Int, [Int], State))]
-ini xss = zipWith (\x i -> (i, split' x)) xss [1..]
+ini = zipWith (\i x -> (i, split' x)) [1..]
 
 data State = Progress | Keep | Done deriving (Show, Eq, Ord)
 
 step :: [(Int, (Int, [Int], State))] -> [(Int, (Int, [Int], State))]
-step ihtbs = zipWith f (V.toList hs') ihtbs
+step ihtbs = zipWith f (U.toList hs') ihtbs
   where
-    hs = V.fromList $ map (fst3.snd) ihtbs
-    hs' = V.map (\h -> if h == 0 then 0 else hs V.! (h-1)) hs
+    hs = U.fromList $ map (fst3.snd) ihtbs
+    hs' = U.map (\h -> if h == 0 then 0 else hs U.! (h-1)) hs
     f h' !(i, (h, !t, s)) | h' == i = (i, split' t)
                           | otherwise = (i, (h, t, max Keep s))
 
