@@ -39,10 +39,10 @@ ini = zipWith (\i x -> (i, split' x)) [1..]
 data State = Progress | Keep | Done deriving (Show, Eq, Ord)
 
 step :: [(Int, (Int, [Int], State))] -> [(Int, (Int, [Int], State))]
-step ihtbs = zipWith f (U.toList hs') ihtbs
+step = zipWith f <$> (U.toList . hs) <*> id
   where
-    hs = U.fromList $ map (fst3.snd) ihtbs
-    hs' = U.map (\h -> if h == 0 then 0 else hs U.! (h-1)) hs
+    hs = (U.map <$> f <*> id) . U.fromList . map (fst3.snd)
+      where f xs h = if h == 0 then 0 else xs U.! (h-1)
     f h' !(i, (h, !t, s)) | h' == i = (i, split' t)
                           | otherwise = (i, (h, t, max Keep s))
 
