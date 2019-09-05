@@ -22,7 +22,7 @@ ini :: V.Vector (U.Vector Int) -> (V.Vector (U.Vector Int), U.Vector (Int, Bool)
 ini = (fst &&& U.convert . snd) . V.unzip . V.map split
 
 step :: (V.Vector (U.Vector Int), U.Vector (Int, Bool)) -> (V.Vector (U.Vector Int), U.Vector (Int, Bool))
-step (!ts, !hs) = (fst &&& U.convert . snd) $ V.unzip $ V.zipWith f (V.convert h'h) ts
+step (!ts, !hs) = (fst &&& U.convert . snd) $! V.unzip $! V.zipWith f (V.convert h'h) ts
   where
      !h'h = U.map g (U.indexed hs)
        where
@@ -50,16 +50,16 @@ parseInt = C.readInt . C.dropWhile isSpace
 --
 
 ex1 :: V.Vector (U.Vector Int)
-ex1 = V.fromList $ map U.fromList [[2,3],[1,3],[1,2]]
+ex1 = V.fromList $! map U.fromList [[2,3],[1,3],[1,2]]
 
 ex2 :: V.Vector (U.Vector Int)
-ex2 = V.fromList $ map U.fromList [[2,3,4],[1,3,4],[4,1,2],[3,1,2]]
+ex2 = V.fromList $! map U.fromList [[2,3,4],[1,3,4],[4,1,2],[3,1,2]]
 
 ex3 :: V.Vector (U.Vector Int)
-ex3 = V.fromList $ map U.fromList [[2,3],[3,1],[1,2]]
+ex3 = V.fromList $! map U.fromList [[2,3],[3,1],[1,2]]
 
 ex4 :: V.Vector (U.Vector Int)
-ex4 = V.fromList $ map (\i -> U.fromList $ filter (i/=) ex) ex
+ex4 = V.fromList $! map (\i -> U.fromList $! filter (i/=) ex) ex
   where
     ex = [1..1000]
 
