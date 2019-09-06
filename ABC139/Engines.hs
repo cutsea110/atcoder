@@ -18,7 +18,23 @@ main = do
   !n <- readLn :: IO Int
   !mat <- U.unfoldrN n parseInt2 <$> C.getContents
   -- let !ex = V.generate n $ \i -> U.slice (i*2) 2 mat
-  print $ sqrt $ fromIntegral $ snd $ calc mat
+  let (_, omax) = calc mat
+  let (_, emax) = calc (U.tail mat)
+  -- print (odds, evns)
+  print $ sqrt $ fromIntegral (max omax emax)
+
+calc :: U.Vector (Int, Int) -> ((Int, Int), Int)
+calc = U.foldl f ((0,0), 0)
+  where
+--    f :: Num a => ((a, a), a) -> (a, a) -> ((a, a), a)
+    f cs@((cx, cy), ttl) (mx, my) | ttl' >= ttl = ((cx', cy'), ttl')
+                                  | otherwise   = cs
+      where
+        (cx', cy') = (cx+mx, cy+my)
+        ttl' = cx'^2 + cy'^2
+
+ex1 :: [(Int, Int)]
+ex1 = [(0,10),(5,-5),(-5,-5)]
 
 type Parser a = C.ByteString -> Maybe (a, C.ByteString)
 
@@ -42,19 +58,6 @@ parseInt4 = runStateT $
         <*> StateT (C.readInt . B.unsafeTail)
         <*> StateT (C.readInt . B.unsafeTail)
         <*> StateT (C.readInt . B.unsafeTail)
-
-calc :: U.Vector (Int, Int) -> ((Int, Int), Int)
-calc = U.foldl f ((0,0), 0)
-  where
---    f :: Num a => ((a, a), a) -> (a, a) -> ((a, a), a)
-    f cs@((cx, cy), ttl) (mx, my) | ttl' >= ttl = ((cx', cy'), ttl')
-                                  | otherwise   = cs
-      where
-        (cx', cy') = (cx+mx, cy+my)
-        ttl' = cx'^2 + cy'^2
-
-ex1 :: [(Int, Int)]
-ex1 = [(0,10),(5,-5),(-5,-5)]
 
 ----------
 {-
