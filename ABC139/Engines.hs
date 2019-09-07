@@ -7,6 +7,8 @@ import Control.Monad
 import Control.Monad.ST
 import Control.Monad.State.Strict
 import Data.Char
+import Data.Function
+import Data.List
 import Data.Maybe
 import qualified Data.Vector as V
 import qualified Data.Vector.Unboxed as U
@@ -17,11 +19,13 @@ main :: IO ()
 main = do
   !n <- readLn :: IO Int
   !mat <- U.unfoldrN n parseInt2 <$> C.getContents
-  -- let !ex = V.generate n $ \i -> U.slice (i*2) 2 mat
-  let (_, omax) = calc mat
-  let (_, emax) = calc (U.tail mat)
-  -- print (odds, evns)
-  print $ sqrt $ fromIntegral (max omax emax)
+  print $ sqrt $ fromIntegral $ snd $ calc mat
+
+
+sortByarg :: [(Int, Int)] -> [(Int, Int)]
+sortByarg = sortBy (compare `on` (uncurry atan2 . conv))
+  where
+    conv = fromIntegral *** fromIntegral
 
 calc :: U.Vector (Int, Int) -> ((Int, Int), Int)
 calc = U.foldl f ((0,0), 0)
