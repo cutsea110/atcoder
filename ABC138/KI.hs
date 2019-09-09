@@ -13,7 +13,9 @@ import Data.Graph
 import Data.List
 import Data.Maybe
 import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
 
@@ -40,14 +42,88 @@ parseInt4 = runStateT $
         <*> StateT (C.readInt . B.unsafeTail)
         <*> StateT (C.readInt . B.unsafeTail)
 
+-- prime means pred
+parseInt' :: Parser Int
+parseInt' = fmap (pred *** id) . parseInt
+
+getInts :: IO [Int]
+getInts = unfoldr parseInt <$> C.getLine
+
+-- prime means pred
+getInts' :: IO [Int]
+getInts' = unfoldr parseInt' <$> C.getLine
+
+getIntTuple :: IO (Int, Int)
+getIntTuple = do
+  a:b:_ <- getInts
+  return (a, b)
+
+-- prime means pred
+getIntTuple' :: IO (Int, Int)
+getIntTuple' = do
+  a:b:_ <- getInts'
+  return (a, b)
+
+getIntTuple3 :: IO (Int, Int, Int)
+getIntTuple3 = do
+  a:b:c:_ <- getInts
+  return (a, b, c)
+
+getIntTuple4 :: IO (Int, Int, Int, Int)
+getIntTuple4 = do
+  a:b:c:d:_ <- getInts
+  return (a, b, c, d)
+
+getIntVec :: Int -> IO (U.Vector Int)
+getIntVec n = U.unfoldrN n parseInt <$> C.getLine
+
+-- prime means pred
+getIntVec' :: Int -> IO (U.Vector Int)
+getIntVec' n = U.unfoldrN n parseInt' <$> C.getLine
+
+neighbors :: Int -> U.Vector (Int, Int) -> V.Vector [Int]
+neighbors n es = V.create $ do
+  vec <- VM.replicate n []
+  U.forM_ es $ \(a, b) -> do
+    VM.modify vec (b:) a
+    VM.modify vec (a:) b
+  return vec
+
+values :: Int -> U.Vector (Int, Int) -> U.Vector Int
+values n ops = U.create $ do
+  vec <- UM.replicate n 0
+  U.forM_ ops $ \(p, pt) -> do
+    UM.modify vec (+pt) p
+  return vec
+
+accumulate :: Int -> V.Vector [Int] -> U.Vector Int -> U.Vector Int
+accumulate n ns vs = U.create $ do
+  vec <- UM.new n
+  let dfs !p !q !acc = do
+        let acc' = acc + vs U.! q
+        UM.write vec q acc'
+        forM_ (ns V.! q) $ \i -> do
+          when (i /= p) $ do
+            dfs q i acc'
+  dfs (-1) 0 0
+  return vec
+
 main :: IO ()
 main = do
-  Just ((!n, !q), _) <- parseInt2 <$> C.getLine
-  !aq <- U.unfoldrN (n-1+q) parseInt2 <$> C.getContents
-  let (!a, !q) = U.splitAt (n-1) aq
-  let !g = genTree n a
-  let !ans = U.map (\i -> U.foldr (\(i', pt) ttl -> if path g (i'-1) i then pt+ttl else ttl) 0 q) $ U.enumFromN 0 n
-  putStrLn $ intercalate " " (map show (U.toList ans))
+  (n, q) <- getIntTuple
+  es <- U.replicateM (n-1) getIntTuple'
+  ops <- U.replicateM q (fmap (pred *** id) getIntTuple)
+  print (es, ops)
+  let ns = neighbors n es
+  print ns
+  let vs = values n ops
+  print vs
+  let res = accumulate n ns vs
+  print res
+  
+--  let !g = genTree n a
+--  let !ans = U.map (\i -> U.foldr (\(i', pt) ttl -> if path g (i'-1) i then pt+ttl else ttl) 0 q) $ U.enumFromN 0 n
+--  putStrLn $ intercalate " " (map show (U.toList ans))
 
 genTree :: Int -> U.Vector (Int, Int) -> Graph
 genTree n ps = let (!g, _, _) = graphFromEdges (V.toList ns) in g
