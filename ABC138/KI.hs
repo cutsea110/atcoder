@@ -18,6 +18,8 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
+import qualified Data.ByteString.Builder as BSB
+import System.IO (stdout)
 
 type Parser a = C.ByteString -> Maybe (a, C.ByteString)
 
@@ -98,7 +100,7 @@ values n ops = U.create $ do
 
 accumulate :: Int -> V.Vector [Int] -> U.Vector Int -> U.Vector Int
 accumulate n ns vs = U.create $ do
-  vec <- UM.new n
+  vec <- UM.replicate n 0
   let dfs !p !q !acc = do
         let acc' = acc + vs U.! q
         UM.write vec q acc'
