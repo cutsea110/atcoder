@@ -83,6 +83,8 @@ getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 getIntVec' :: Int -> IO (U.Vector Int)
 getIntVec' n = U.unfoldrN n parseInt' <$> C.getLine
 
+---------------------------------------------------------
+
 neighbors :: Int -> U.Vector (Int, Int) -> V.Vector [Int]
 neighbors n es = V.create $ do
   vec <- VM.replicate n []
@@ -110,30 +112,19 @@ accumulate n ns vs = U.create $ do
   dfs (-1) 0 0
   return vec
 
+toBS :: U.Vector Int -> BSB.Builder
+toBS = (mconcat . intersperse (BSB.char7 ' ') . map BSB.intDec . U.toList)
+
 main :: IO ()
 main = do
   (n, q) <- getIntTuple
   es <- U.replicateM (n-1) getIntTuple'
   ops <- U.replicateM q (fmap (pred *** id) getIntTuple)
-  print (es, ops)
+  -- print (es, ops)
   let ns = neighbors n es
-  print ns
+  -- print ns
   let vs = values n ops
-  print vs
+  -- print vs
   let res = accumulate n ns vs
-  print res
-  
---  let !g = genTree n a
---  let !ans = U.map (\i -> U.foldr (\(i', pt) ttl -> if path g (i'-1) i then pt+ttl else ttl) 0 q) $ U.enumFromN 0 n
---  putStrLn $ intercalate " " (map show (U.toList ans))
-
-genTree :: Int -> U.Vector (Int, Int) -> Graph
-genTree n ps = let (!g, _, _) = graphFromEdges (V.toList ns) in g
-  where
-    cs :: V.Vector (U.Vector Int)
-    !cs = V.generate n $ \i -> U.map snd (U.filter ((==(i+1)).fst) ps)
-    ns :: V.Vector (Int, Int, [Int])
-    !ns = V.zipWith (\xs i -> (i, i+1, U.toList xs)) cs (V.enumFromN 0 n)
-
-ex1 :: (U.Vector (Int, Int), U.Vector (Int, Int))
-ex1 = (U.fromList [(1,2),(2,3),(2,4)], U.fromList [(2,10),(1,100),(3,1)])
+  -- print res
+  BSB.hPutBuilder stdout $ toBS res <> (BSB.char7 '\n')
