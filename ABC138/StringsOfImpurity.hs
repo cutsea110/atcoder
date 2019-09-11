@@ -103,4 +103,4 @@ match s !t !l !i !c | C.null t = c
                     | otherwise               = match s t          l ((i+1) `mod` l) (c+1)
   where
     lim :: Integer
-    lim = fromIntegral (l*(10^100))
+    lim = (10^100)*(fromIntegral l)
