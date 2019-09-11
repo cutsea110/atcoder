@@ -98,9 +98,9 @@ type Index = Int
 
 match :: C.ByteString -> C.ByteString -> Length -> Index -> Count -> Count
 match s !t !l !i !c | C.null t = c
-                    | c >= lim = -1
+                    | c >  lim = -1
                     | C.index s i == C.head t = match s (C.tail t) l ((i+1) `mod` l) (c+1)
                     | otherwise               = match s t          l ((i+1) `mod` l) (c+1)
   where
     lim :: Integer
-    lim = fromIntegral (l*100)
+    lim = fromIntegral (l*(10^100))
