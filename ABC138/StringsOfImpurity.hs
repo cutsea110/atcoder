@@ -89,18 +89,18 @@ main :: IO ()
 main = do
   s <- C.getLine
   t <- C.getLine
-  print (match s t (C.length s) 0 0)
+  let !l = C.length s
+  let !lim = (10^100) * (fromIntegral l)
+  print (match s t lim l 0 0)
 
 
 type Count = Integer
+type Limit = Integer
 type Length = Int
 type Index = Int
 
-match :: C.ByteString -> C.ByteString -> Length -> Index -> Count -> Count
-match s !t !l !i !c | C.null t = c
-                    | c >  lim = -1
-                    | C.index s i == C.head t = match s (C.tail t) l ((i+1) `mod` l) (c+1)
-                    | otherwise               = match s t          l ((i+1) `mod` l) (c+1)
-  where
-    lim :: Integer
-    lim = (10^100)*(fromIntegral l)
+match :: C.ByteString -> C.ByteString -> Limit -> Length -> Index -> Count -> Count
+match s !t lim !l !i !c | C.null t = c
+                        | c >= lim = -1
+                        | C.index s i == C.head t = match s (C.tail t) lim l ((i+1) `mod` l) (c+1)
+                        | otherwise               = match s t          lim l ((i+1) `mod` l) (c+1)
