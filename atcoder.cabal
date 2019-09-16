@@ -17,7 +17,7 @@ build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
 
 executable atcoder
-  main-is:             Main.hs
+  main-is:             ABC141/AttackSurvival.hs
   -- other-modules:
   -- other-extensions:
   build-depends:       array
