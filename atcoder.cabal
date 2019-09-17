@@ -17,7 +17,7 @@ build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
 
 executable atcoder
-  main-is:             ABC141/AttackSurvival.hs
+  main-is:             ABC141/PowerfulDiscountTicket.hs
   -- other-modules:
   -- other-extensions:
   build-depends:       array
