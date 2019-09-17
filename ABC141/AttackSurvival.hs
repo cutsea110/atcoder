@@ -3,7 +3,7 @@
 {-# LANGUAGE BangPatterns #-}
 module Main where
 
-import Control.Arrow
+import Control.Arrow hiding ((+++))
 import Control.Monad
 import Control.Monad.ST
 import Control.Monad.State.Strict
@@ -83,6 +83,27 @@ getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 getIntVec' :: Int -> IO (U.Vector Int)
 getIntVec' n = U.unfoldrN n parseInt' <$> C.getLine
 
+-- priority queue
+-- https://stackoverflow.com/questions/6976559/comparison-of-priority-queue-implementations-in-haskell
+--
+data SkewHeap a = Empty | SkewNode a (SkewHeap a) (SkewHeap a) deriving (Show)
+
+(+++) :: Ord a => SkewHeap a -> SkewHeap a -> SkewHeap a
+heap1@(SkewNode x1 l1 r1) +++ heap2@(SkewNode x2 l2 r2) 
+  | x1 <= x2    = SkewNode x1 (heap2 +++ r1) l1 
+  | otherwise = SkewNode x2 (heap1 +++ r2) l2
+Empty +++ heap = heap
+heap +++ Empty = heap
+
+node :: a -> SkewHeap a
+node x = SkewNode x Empty Empty
+
+extractMin Empty = Nothing
+extractMin (SkewNode x l r ) = Just (x , l +++ r )
+
+fromList :: Ord a => [a] -> SkewHeap a
+fromList = foldl (+++) Empty . map node
+
 ---------------------------------------------------------
 
 wins :: Int -> U.Vector Int -> U.Vector Int
@@ -103,3 +124,4 @@ main = do
   as <- U.replicateM q (fmap pred (readLn :: IO Int))
   let ws = wins n as
   pr (q - k) ws
+
