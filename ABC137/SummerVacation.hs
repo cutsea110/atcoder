@@ -131,9 +131,6 @@ readProblem = do
   as <- replicateM n getIntTuple
   return (n, m, as)
 
-removeHead :: Int -> Map.Map Int (SkewHeap Int) -> Map.Map Int (SkewHeap Int)
-removeHead k map = undefined
-
 solve :: (Integer, Map.Map Int (SkewHeap Int)) -> Int -> (Integer, Map.Map Int (SkewHeap Int))
 solve prev@(ttl, map) n = maybe prev (\(k, v, hp') -> (ttl+fromIntegral v, Map.alter (const (Just hp')) k map)) mv
   where
