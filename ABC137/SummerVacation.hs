@@ -132,15 +132,14 @@ readProblem = do
   return (n, m, as)
 
 solve :: (Integer, Map.Map Int (SkewHeap Int)) -> Int -> (Integer, Map.Map Int (SkewHeap Int))
-solve prev@(ttl, map) n = maybe prev (\(k, v, hp') -> (ttl+fromIntegral v, Map.alter (const (Just hp')) k map)) mv
+solve prev@(!ttl, !map) !n = maybe prev (\(k, v, hp') -> (ttl+fromIntegral v, Map.alter (const (Just hp')) k map)) mv
   where
-    (map', _) = Map.partitionWithKey (\k _ -> k <= n) map
-    mv =  Map.foldlWithKey f Nothing map'
-    f mv k = maybe mv (\(v, hp') -> if fmap snd3 mv <= Just v then Just (k, v, hp') else mv) . extractMax
+    !mv =  Map.foldlWithKey f Nothing map
+    f !mv !k = maybe mv (\(v, hp') -> if k <= n && fmap snd3 mv <= Just v then Just (k, v, hp') else mv) . extractMax
   
 main :: IO ()
 main = do
   (n, m, as) <- readProblem
-  let map = foldl' (\m (k,v) -> Map.insertWithKey (\k nv ov -> nv +++ ov) k (node v) m) Map.empty as
-  let (ttl,_) = foldl' solve (0, map) [1..m]
+  let !map = foldl' (\m (k,v) -> Map.insertWithKey (\k nv ov -> nv +++ ov) k (node v) m) Map.empty as
+  let (!ttl,_) = foldl' solve (0, map) [1..m]
   print ttl
