@@ -125,10 +125,10 @@ sumSkewHeap = foldSkewHeap 0 (\a l r -> fromIntegral a + l + r)
 
 ---------------------------------------------------------
 
-readProblem :: IO (Int, Int, [(Int, Int)])
+readProblem :: IO (Int, Int, U.Vector (Int, Int))
 readProblem = do
   (n, m) <- getIntTuple
-  as <- replicateM n getIntTuple
+  as <- U.replicateM n getIntTuple
   return (n, m, as)
 
 solve :: (Integer, Map.Map Int (SkewHeap Int)) -> Int -> (Integer, Map.Map Int (SkewHeap Int))
@@ -140,6 +140,6 @@ solve prev@(!ttl, !map) !n = maybe prev (\(k, v, hp') -> (ttl+fromIntegral v, Ma
 main :: IO ()
 main = do
   (n, m, as) <- readProblem
-  let !map = foldl' (\m (k,v) -> Map.insertWithKey (\k nv ov -> nv +++ ov) k (node v) m) Map.empty as
+  let !map = U.foldl' (\m (k,v) -> Map.insertWithKey (\k nv ov -> nv +++ ov) k (node v) m) Map.empty as
   let (!ttl,_) = foldl' solve (0, map) [1..m]
   print ttl
