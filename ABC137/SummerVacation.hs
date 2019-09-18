@@ -100,7 +100,7 @@ data SkewHeap a = Empty
 
 (+++) :: Ord a => SkewHeap a -> SkewHeap a -> SkewHeap a
 heap1@(SkewNode x1 l1 r1) +++ heap2@(SkewNode x2 l2 r2) 
-  | x1 >= x2   = SkewNode x1 (heap2 +++ r1) l1 
+  | x1 <= x2   = SkewNode x1 (heap2 +++ r1) l1 
   | otherwise  = SkewNode x2 (heap1 +++ r2) l2
 Empty +++ heap = heap
 heap +++ Empty = heap
@@ -131,15 +131,28 @@ readProblem = do
   as <- U.replicateM n getIntTuple
   return (n, m, as)
 
+data T = T { day :: Int, amount :: Int } deriving (Show, Eq)
+instance Ord T where
+  T f1 s1 <= T f2 s2 = s1 >= s2 || s1 == s2 && f1 <= f2
+
 solve :: (Integer, Map.Map Int (SkewHeap Int)) -> Int -> (Integer, Map.Map Int (SkewHeap Int))
 solve prev@(!ttl, !map) !n = maybe prev (\(k, v, hp') -> (ttl+fromIntegral v, Map.alter (const (Just hp')) k map)) mv
   where
     !mv =  Map.foldlWithKey f Nothing map
     f !mv !k = maybe mv (\(v, hp') -> if k <= n && fmap snd3 mv <= Just v then Just (k, v, hp') else mv) . extractMax
-  
+
+solve' :: Map.Map Int (SkewHeap T) -> (Integer, SkewHeap T) -> Int -> (Integer, SkewHeap T)
+solve' map (ttl, hp) n = (new_ttl, new_hp)
+  where
+    mhp = Map.lookup n map
+    hp' = maybe hp (hp+++) mhp
+    mv = extractMax hp'
+    (new_ttl, new_hp) = maybe (ttl, hp') (first ((ttl+).fromIntegral.amount)) mv
+
 main :: IO ()
 main = do
   (n, m, as) <- readProblem
-  let !map = U.foldl' (\m (k,v) -> Map.insertWithKey (\k nv ov -> nv +++ ov) k (node v) m) Map.empty as
-  let (!ttl,_) = foldl' solve (0, map) [1..m]
+  let !map = U.foldl' (\m (k,v) -> Map.insertWithKey (\_ nv ov -> nv +++ ov) k (node (T k v)) m) Map.empty as
+  let (!ttl, !hp) = foldl' (solve' map) (0, Empty) [1..m]
+  -- print hp
   print ttl
