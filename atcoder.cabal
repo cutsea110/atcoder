@@ -17,7 +17,7 @@ build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
 
 executable atcoder
-  main-is:             ABC141/PowerfulDiscountTicket.hs
+  main-is:             ABC137/GreenBin.hs
   -- other-modules:
   -- other-extensions:
   build-depends:       array
