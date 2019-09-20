@@ -119,7 +119,7 @@ main :: IO ()
 main = do
   (n, q) <- getIntTuple
   es <- U.replicateM (n-1) getIntTuple'
-  ops <- U.replicateM q (fmap (pred *** id) getIntTuple)
+  ops <- U.replicateM q (fmap (first pred) getIntTuple)
   -- print (es, ops)
   let ns = neighbors n es
   -- print ns
