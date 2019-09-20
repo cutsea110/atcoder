@@ -72,13 +72,16 @@ cozygo :: Functor f => (a -> f a) -> (b -> f (Either a b)) -> b -> Fix f
 cozygo f psi = ana (uncurry either (fmap Left . f, psi)) . Right
 -- dynamorphism
 dyna :: Functor f => (f (Cofree f b) -> b) -> (a -> f a) -> a -> b
-dyna f g = chrono f (fmap inject . g)
+dyna f g = chrono f (fmap inject . g) -- histo f . ana g
 -- codynamorphism
 codyna :: Functor f => (f b -> b) -> (a -> f (Free f a)) -> a -> b
 codyna f g = chrono (f . fmap extract) g
 -- mutumorphism
 mutu :: Functor f => (a -> b) -> (f a -> a) -> Fix f -> b
 mutu proj phi = proj . cata phi
+-- comutumorphism
+comutu :: Functor f => (b -> a) -> (a -> f a) -> b -> Fix f
+comutu proj psi = ana psi . proj
 
 
 foldn (c, f) 0 = c
@@ -93,23 +96,21 @@ main :: IO ()
 main = do
   !n <- readLn :: IO Int
   !hs <- getIntVec n
-  print $ step (distrib hs)
+  print $ solve hs (n-1)
 
 data NonEmptyListF a = NonEmptyListF Int (Maybe a) deriving (Show, Functor)
+{-
 type NonEmptyList = Fix NonEmptyListF
 instance Show NonEmptyList where
   show (In (NonEmptyListF h Nothing)) = show h ++ ":[]"
   show (In (NonEmptyListF h (Just t))) = show h ++ ":" ++ show t
-
-distrib vec = ana (psi vec) (U.length vec - 1)
-psi vec = u
+-}
+solve :: U.Vector Int -> Int -> Int
+solve vec = dyna phi psi
   where
-    u 0 = NonEmptyListF (vec U.! 0) Nothing
-    u i = NonEmptyListF (vec U.! i) (Just (i-1))
+    psi 0 = NonEmptyListF (vec U.! 0) Nothing
+    psi i = NonEmptyListF (vec U.! i) (Just (i-1))
 
-step :: NonEmptyList -> Int
-step = histo phi
-  where
     phi (NonEmptyListF h Nothing) = 0
     phi (NonEmptyListF h (Just t)) = case sub t of
       NonEmptyListF h' Nothing   -> abs (h-h')
@@ -118,46 +119,3 @@ step = histo phi
           where
             f1 = extract t  + abs (h-h')
             f2 = extract t' + abs (h-h'')
-
-{-
-frog1 vec = paran (step vec 0 undefined, step vec)
-
-step vec 0 _ = (0, (vec U.! 0, undefined, undefined, undefined, undefined))
-step vec 1 (c, (h, h1, c1, h2, c2)) = (c', (h', h, c, h1, c1))
-  where
-    h' = vec U.! 1
-    c' = abs (h'-h)
-step vec i (c, (h, h1, c1, h2, c2)) = (c', (h', h1', c1', h2', c2'))
-  where
-    h' = vec U.! i
-    h1' = h
-    c1' = c
-    h2' = h1
-    c2' = c1
-    d1 = abs (h'-h1')
-    d2 = abs (h'-h2')
-    c' = min (c1'+d1) (c2'+d2)
-
-main :: IO ()
-main = do
-  !n <- readLn :: IO Int
-  !hs <- getIntVec n
-  print $ fst $ frog1 hs (n-1)
--}
-
-{-
-data TNat a = Zero | Succ a deriving (Show, Functor)
-type Nat = Fix TNat
-
-nat 0 = In Zero
-nat n = In $ Succ $ nat (n-1)
-
-fibAsHisto :: Nat -> Integer
-fibAsHisto = histo phi where
-  phi Zero = 0 -- (a)
-  phi (Succ x) = f1 + f2 where -- (b)
-    f1 = extract x
-    f2 = case sub x of
-      Zero   -> 1 -- (c1)
-      Succ y -> extract y -- (c2)
--}
