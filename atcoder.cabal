@@ -17,7 +17,7 @@ build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
 
 executable atcoder
-  main-is:             ABC137/SummerVacation.hs
+  main-is:             DP/Frog1.hs
   -- other-modules:
   -- other-extensions:
   build-depends:       array
