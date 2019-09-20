@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Main where
 
 import Data.Char (isSpace)
@@ -87,6 +89,37 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
+main :: IO ()
+main = do
+  !n <- readLn :: IO Int
+  !hs <- getIntVec n
+  print $ step (distrib hs)
+
+data NonEmptyListF a = NonEmptyListF Int (Maybe a) deriving (Show, Functor)
+type NonEmptyList = Fix NonEmptyListF
+instance Show NonEmptyList where
+  show (In (NonEmptyListF h Nothing)) = show h ++ ":[]"
+  show (In (NonEmptyListF h (Just t))) = show h ++ ":" ++ show t
+
+distrib vec = ana (psi vec) (U.length vec - 1)
+psi vec = u
+  where
+    u 0 = NonEmptyListF (vec U.! 0) Nothing
+    u i = NonEmptyListF (vec U.! i) (Just (i-1))
+
+step :: NonEmptyList -> Int
+step = histo phi
+  where
+    phi (NonEmptyListF h Nothing) = 0
+    phi (NonEmptyListF h (Just t)) = case sub t of
+      NonEmptyListF h' Nothing   -> abs (h-h')
+      NonEmptyListF h' (Just t') -> case sub t' of
+        NonEmptyListF h'' _ -> min f1 f2
+          where
+            f1 = extract t  + abs (h-h')
+            f2 = extract t' + abs (h-h'')
+
+{-
 frog1 vec = paran (step vec 0 undefined, step vec)
 
 step vec 0 _ = (0, (vec U.! 0, undefined, undefined, undefined, undefined))
@@ -110,6 +143,7 @@ main = do
   !n <- readLn :: IO Int
   !hs <- getIntVec n
   print $ fst $ frog1 hs (n-1)
+-}
 
 {-
 data TNat a = Zero | Succ a deriving (Show, Functor)
