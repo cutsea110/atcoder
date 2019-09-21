@@ -107,16 +107,14 @@ main = do
   xs <- U.replicateM n getTriple
   print $ solve xs (n-1)
 
-type ABC = (Int, Int, Int)
-
-data NonEmptyListF a = NonEmptyListF ABC (Maybe a) deriving (Show, Functor)
+type Score = (Int, Int, Int)
+data NonEmptyListF a = NonEmptyListF Score (Maybe a) deriving (Show, Functor)
+{-
 type NonEmptyList = Fix NonEmptyListF
 instance Show NonEmptyList where
   show (In (NonEmptyListF h Nothing)) = show h ++ ":[]"
   show (In (NonEmptyListF h (Just t))) = show h ++ ":" ++ show t
-
-type Point = Int
-type Score = (Point, Point, Point)
+-}
 
 max3 (x,y,z) = max x (max y z)
 
