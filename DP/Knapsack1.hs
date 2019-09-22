@@ -6,10 +6,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Main where
 
+import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.List (unfoldr)
 import qualified Data.Vector.Unboxed as U
-import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
 
@@ -117,16 +117,11 @@ data NonEmptyListF a = NonEmptyListF (Weight, Value) (Maybe a) deriving (Show, F
 solve :: U.Vector (Weight, Value) -> (Int, Weight) -> Value
 solve vec (n, w) = U.foldr max 0 $ dyna phi psi (n-1)
   where
-    w' = w+1
-    
     psi 0 = NonEmptyListF (vec U.! 0) Nothing
     psi i = NonEmptyListF (vec U.! i) (Just (i-1))
 
     phi :: NonEmptyListF (Cofree NonEmptyListF (U.Vector Value)) -> U.Vector Value
-    phi (NonEmptyListF (cw, cv) Nothing) = U.create $ do
-      vec <- UM.replicate w' 0
-      UM.modify vec (+cv) cw
-      return vec
+    phi (NonEmptyListF (cw, cv) Nothing) = U.generate (w+1) (bool 0 cv . (cw==))
     phi (NonEmptyListF (cw, cv) (Just t)) = U.zipWith max prev vec
       where
         prev = extract t
