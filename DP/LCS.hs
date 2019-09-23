@@ -102,17 +102,17 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
+max3 x y z = max x (max y z)
+
 main :: IO ()
 main = do
   s <- C.cons '\NUL' <$> C.getLine
   t <- C.cons '\NUL' <$> C.getLine
-  print $ solve s t
+  C.putStrLn $ C.reverse $ head $ snd $ V.last $ solve s t
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
-max3 x y z = max x (max y z)
-
-solve :: C.ByteString -> C.ByteString -> V.Vector (Int, [String])
+solve :: C.ByteString -> C.ByteString -> V.Vector (Int, [C.ByteString])
 solve cs rs = dyna phi psi (rlen-1)
   where
     (clen, rlen) = (C.length cs, C.length rs)
@@ -120,9 +120,9 @@ solve cs rs = dyna phi psi (rlen-1)
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (Int, [String]))) -> V.Vector (Int, [String])
-    phi (NonEmptyListF _ Nothing) = V.replicate clen (0, [[]])
-    phi (NonEmptyListF c (Just t)) = V.unfoldr p (0, (0, [[]]))
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (Int, [C.ByteString]))) -> V.Vector (Int, [C.ByteString])
+    phi (NonEmptyListF _ Nothing) = V.replicate clen (0, [C.empty])
+    phi (NonEmptyListF c (Just t)) = V.unfoldr p (0, (0, [C.empty]))
       where
         prev = extract t
         p (i, lhs@(l, hs)) | i == 0 = Just (lhs, (i+1, lhs))
@@ -131,7 +131,7 @@ solve cs rs = dyna phi psi (rlen-1)
           where
             new = (n', hs')            
             n' = bool (max l u) (lu+1) upd
-            hs' = bool (nub . filter (\s -> length s == n') $ uh++luh) (map (c':) hs) upd
+            hs' = bool (nub . filter ((n'==).C.length) $ uh ++ luh) (map (c' `C.cons`) hs) upd
             
             (c', upd) = (cs `C.index` i, c == c')
             (u, uh) = prev V.! i
