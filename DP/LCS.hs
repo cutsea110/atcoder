@@ -9,7 +9,8 @@ module Main where
 
 import Data.Bool (bool)
 import Data.Char (isSpace)
-import Data.List (unfoldr)
+import Data.Function (on)
+import Data.List (unfoldr, foldl')
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
@@ -27,6 +28,36 @@ getInts = unfoldr parseInt <$> C.getLine
 
 getIntVec :: Int -> IO (U.Vector Int)
 getIntVec n = U.unfoldrN n parseInt <$> C.getLine
+
+----------------------------
+data SkewHeap a = Empty
+                | SkewNode a (SkewHeap a) (SkewHeap a)
+                deriving (Show, Functor)
+
+(+++) :: Ord a => SkewHeap a -> SkewHeap a -> SkewHeap a
+heap1@(SkewNode x1 l1 r1) +++ heap2@(SkewNode x2 l2 r2) 
+  | x1 >= x2   = SkewNode x1 (heap2 +++ r1) l1 
+  | otherwise  = SkewNode x2 (heap1 +++ r2) l2
+Empty +++ heap = heap
+heap +++ Empty = heap
+
+node :: a -> SkewHeap a
+node x = SkewNode x Empty Empty
+
+extractMax Empty = Nothing
+extractMax (SkewNode x l r ) = Just (x , l +++ r )
+
+fromList :: Ord a => [a] -> SkewHeap a
+fromList = foldl' (+++) Empty . map node
+
+foldSkewHeap :: b -> (a -> b -> b -> b) -> SkewHeap a -> b
+foldSkewHeap c f = u
+  where
+    u Empty = c
+    u (SkewNode a l r) = f a (u l) (u r)
+
+sumSkewHeap :: SkewHeap Int -> Integer
+sumSkewHeap = foldSkewHeap 0 (\a l r -> fromIntegral a + l + r)
 
 ----------------------------
 pair (f, g) x = (f x, g x)
@@ -102,15 +133,22 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
+newtype BS = BS { unBS :: C.ByteString } deriving Show
+instance Eq BS where
+  (==) = (==) `on` (C.length . unBS)
+instance Ord BS where
+  (<=) = (<=) `on` (C.length . unBS)
+
 main :: IO ()
 main = do
   !s <- C.cons '\NUL' <$> C.getLine
   !t <- C.cons '\NUL' <$> C.getLine
-  print $ V.last $ solve s t
+  let (_,n,xs) = V.last $ solve s t
+  C.putStrLn $ maybe C.empty (C.reverse . unBS . fst) . extractMax $ xs
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
-solve :: C.ByteString -> C.ByteString -> V.Vector (Char, Int)
+solve :: C.ByteString -> C.ByteString -> V.Vector (Char, Int, SkewHeap BS)
 solve !cs !rs = dyna phi psi (rlen-1)
   where
     (!clen, !rlen) = (C.length cs, C.length rs)
@@ -118,15 +156,16 @@ solve !cs !rs = dyna phi psi (rlen-1)
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (Char, Int))) -> V.Vector (Char, Int)
-    phi (NonEmptyListF _ Nothing) = V.generate clen $ \i -> (cs `C.index` i, 0)
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (Char, Int, SkewHeap BS))) -> V.Vector (Char, Int, SkewHeap BS)
+    phi (NonEmptyListF _ Nothing) = V.generate clen $ \i -> (cs `C.index` i, 0, node (BS C.empty))
     phi (NonEmptyListF !c (Just t)) = vec
       where
         !prev = extract t
-        !vec = V.cons ('\NUL', 0) $ V.unfoldr p (0, V.zip prev (V.tail prev))
-        p (!l, !xs)
+        !vec = V.cons ('\NUL', 0, node (BS C.empty)) $ V.unfoldr p ((0, node (BS C.empty)), V.zip prev (V.tail prev))
+        p ((!l, !hl), !xs)
           | V.null xs = Nothing
           | otherwise =
-              let (((_, !lu), (!c', !u)), !xs') = (V.head xs, V.tail xs)
+              let (((_, !lu, !hlu), (!c', !u, !hu)), !xs') = (V.head xs, V.tail xs)
                   !l' = bool (max l u) (lu+1) (c==c')
-              in Just ((c', l'), (l', xs'))
+                  !h' = bool (hl+++hu) (fmap (BS . C.cons c' . unBS) hlu) (c==c')
+              in Just ((c', l', h'), ((l', h'), xs'))
