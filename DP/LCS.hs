@@ -10,6 +10,8 @@ module Main where
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.List (unfoldr)
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.ByteString.Char8 as C
@@ -108,9 +110,9 @@ main = do
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
-max3 x y z = max x (max y z)
+-- max3 x y z = max x (max y z)
 
-solve :: C.ByteString -> C.ByteString -> U.Vector Int
+solve :: C.ByteString -> C.ByteString -> V.Vector Int
 solve cs rs = dyna phi psi (rlen-1)
   where
     (clen, rlen) = (C.length cs, C.length rs)
@@ -118,16 +120,15 @@ solve cs rs = dyna phi psi (rlen-1)
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (U.Vector Int)) -> U.Vector Int
-    phi (NonEmptyListF _ Nothing) = U.replicate clen 0
-    phi (NonEmptyListF c (Just t)) = vec
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector Int)) -> V.Vector Int
+    phi (NonEmptyListF _ Nothing) = V.replicate clen 0
+    phi (NonEmptyListF c (Just t)) = V.unfoldr p (0, 0)
       where
         prev = extract t
-        vec = U.unfoldr p (0, 0)
         p (i, l) | i == 0 = Just (0, (i+1, 0))
                  | i < clen = Just (n', (i+1, n'))
                  | otherwise = Nothing
           where
-            n' = max3 l u (lu + bool 0 1 (c == cs `C.index` i))
-            u = prev U.! i
-            lu = prev U.! (i-1)
+            n' = bool (max l u) (lu + 1) (c == cs `C.index` i)
+            u = prev V.! i
+            lu = prev V.! (i-1)
