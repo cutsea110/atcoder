@@ -9,7 +9,7 @@ module Main where
 
 import Data.Bool (bool)
 import Data.Char (isSpace)
-import Data.List (unfoldr)
+import Data.List (unfoldr, filter, nub)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
@@ -110,9 +110,9 @@ main = do
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
--- max3 x y z = max x (max y z)
+max3 x y z = max x (max y z)
 
-solve :: C.ByteString -> C.ByteString -> V.Vector Int
+solve :: C.ByteString -> C.ByteString -> V.Vector (Int, [String])
 solve cs rs = dyna phi psi (rlen-1)
   where
     (clen, rlen) = (C.length cs, C.length rs)
@@ -120,15 +120,19 @@ solve cs rs = dyna phi psi (rlen-1)
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector Int)) -> V.Vector Int
-    phi (NonEmptyListF _ Nothing) = V.replicate clen 0
-    phi (NonEmptyListF c (Just t)) = V.unfoldr p (0, 0)
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (Int, [String]))) -> V.Vector (Int, [String])
+    phi (NonEmptyListF _ Nothing) = V.replicate clen (0, [[]])
+    phi (NonEmptyListF c (Just t)) = V.unfoldr p (0, (0, [[]]))
       where
         prev = extract t
-        p (i, l) | i == 0 = Just (0, (i+1, 0))
-                 | i < clen = Just (n', (i+1, n'))
-                 | otherwise = Nothing
+        p (i, lhs@(l, hs)) | i == 0 = Just (lhs, (i+1, lhs))
+                           | i < clen = Just (new, (i+1, new))
+                           | otherwise = Nothing
           where
-            n' = bool (max l u) (lu + 1) (c == cs `C.index` i)
-            u = prev V.! i
-            lu = prev V.! (i-1)
+            new = (n', hs')            
+            n' = bool (max l u) (lu+1) upd
+            hs' = bool (nub . filter (\s -> length s == n') $ uh++luh) (map (c':) hs) upd
+            
+            (c', upd) = (cs `C.index` i, c == c')
+            (u, uh) = prev V.! i
+            (lu, luh) = prev V.! (i-1)
