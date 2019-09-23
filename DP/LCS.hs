@@ -10,6 +10,8 @@ module Main where
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.List (unfoldr)
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.ByteString.Char8 as C
@@ -104,13 +106,11 @@ main :: IO ()
 main = do
   !s <- C.cons '\NUL' <$> C.getLine
   !t <- C.cons '\NUL' <$> C.getLine
-  print $ U.last $ solve s t
+  print $ V.last $ solve s t
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
-max3 x y z = max x (max y z)
-
-solve :: C.ByteString -> C.ByteString -> U.Vector (Char, Int)
+solve :: C.ByteString -> C.ByteString -> V.Vector (Char, Int)
 solve !cs !rs = dyna phi psi (rlen-1)
   where
     (!clen, !rlen) = (C.length cs, C.length rs)
@@ -118,15 +118,15 @@ solve !cs !rs = dyna phi psi (rlen-1)
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (U.Vector (Char, Int))) -> U.Vector (Char, Int)
-    phi (NonEmptyListF _ Nothing) = U.generate clen $ \i -> (cs `C.index` i, 0)
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (Char, Int))) -> V.Vector (Char, Int)
+    phi (NonEmptyListF _ Nothing) = V.generate clen $ \i -> (cs `C.index` i, 0)
     phi (NonEmptyListF !c (Just t)) = vec
       where
         !prev = extract t
-        !vec = U.cons ('\NUL', 0) $ U.unfoldr p (0, U.zip prev (U.tail prev))
+        !vec = V.cons ('\NUL', 0) $ V.unfoldr p (0, V.zip prev (V.tail prev))
           where
-            p (!l, !xs) | U.null xs = Nothing
+            p (!l, !xs) | V.null xs = Nothing
                         | otherwise =
-                            let (((_, !lu), (!c', !u)), !xs') = (U.head xs, U.tail xs)
-                                !l' = max3 l u (lu + fromEnum (c==c'))
+                            let (((_, !lu), (!c', !u)), !xs') = (V.head xs, V.tail xs)
+                                !l' = bool (max l u) (lu+1) (c==c')
                             in Just ((c', l'), (l', xs'))
