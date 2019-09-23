@@ -17,7 +17,7 @@ build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
 
 executable atcoder
-  main-is:             DP/Knapsack2.hs
+  main-is:             DP/LCS.hs
   -- other-modules:
   -- other-extensions:
   build-depends:       array
