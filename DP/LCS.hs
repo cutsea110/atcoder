@@ -124,9 +124,9 @@ solve !cs !rs = dyna phi psi (rlen-1)
       where
         !prev = extract t
         !vec = V.cons ('\NUL', 0) $ V.unfoldr p (0, V.zip prev (V.tail prev))
-          where
-            p (!l, !xs) | V.null xs = Nothing
-                        | otherwise =
-                            let (((_, !lu), (!c', !u)), !xs') = (V.head xs, V.tail xs)
-                                !l' = bool (max l u) (lu+1) (c==c')
-                            in Just ((c', l'), (l', xs'))
+        p (!l, !xs)
+          | V.null xs = Nothing
+          | otherwise =
+              let (((_, !lu), (!c', !u)), !xs') = (V.head xs, V.tail xs)
+                  !l' = bool (max l u) (lu+1) (c==c')
+              in Just ((c', l'), (l', xs'))
