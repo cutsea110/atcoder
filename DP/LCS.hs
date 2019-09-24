@@ -104,7 +104,7 @@ main :: IO ()
 main = do
   !s <- C.cons '\NUL' <$> C.getLine
   !t <- C.cons '\NUL' <$> C.getLine
-  print $ U.last $ solve s t
+  print $ solve s t
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
