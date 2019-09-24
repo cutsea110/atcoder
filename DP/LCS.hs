@@ -106,9 +106,26 @@ main :: IO ()
 main = do
   !s <- C.cons '\NUL' <$> C.getLine
   !t <- C.cons '\NUL' <$> C.getLine
-  print $ solve s t
+  let solved = solve s t
+  putStrLn $ regain solved t
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
+
+regain :: V.Vector (U.Vector (Char, Int)) -> C.ByteString -> String
+regain solved rs = go [] (rlen-1, clen-1)
+  where
+    (rlen, clen) = (V.length solved, U.length $ V.head solved)
+    !mat = V.reverse solved
+    
+    go res (i, j) | i <= 0 || j <= 0 = res
+                  | n == l = go res (i, j-1)
+                  | n == u = go res (i-1, j)
+                  | otherwise = go (c':res) (i-1, j-1)
+      where
+        c = rs `C.index` i
+        (c', n) = (mat V.! i) U.! j
+        (_, l) = (mat V.! i) U.! (j-1)
+        (_, u) = (mat V.! (i-1)) U.! j
 
 solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
 solve !cs !rs = dyna phi psi (rlen-1)
