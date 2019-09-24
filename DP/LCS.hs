@@ -12,6 +12,8 @@ import Data.Char (isSpace)
 import Data.List (unfoldr)
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
 
@@ -110,19 +112,21 @@ data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
 max3 x y z = max x (max y z)
 
-solve :: C.ByteString -> C.ByteString -> U.Vector Int
+solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector Int)
 solve cs rs = dyna phi psi (rlen-1)
   where
+
     (clen, rlen) = (C.length cs, C.length rs)
     
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (U.Vector Int)) -> U.Vector Int
-    phi (NonEmptyListF _ Nothing) = U.replicate clen 0
-    phi (NonEmptyListF c (Just t)) = vec
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (U.Vector Int))) -> V.Vector (U.Vector Int)
+    phi (NonEmptyListF _ Nothing) = V.singleton $ U.replicate clen 0
+    phi (NonEmptyListF c (Just t)) = vec `V.cons` prevs
       where
-        prev = extract t
+        prevs = extract t
+        prev = V.head prevs
         vec = U.unfoldr p (0, 0)
         p (i, l) | i == 0 = Just (0, (i+1, 0))
                  | i < clen = Just (n', (i+1, n'))
