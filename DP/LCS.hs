@@ -109,7 +109,7 @@ main = do
   let solved = solve s t
   putStrLn $ regain solved t
 
-data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
+data NonEmptyListF a b = NonEmptyListF a (Maybe b) deriving (Show, Functor)
 
 regain :: V.Vector (U.Vector (Char, Int)) -> C.ByteString -> String
 regain solved rs = go [] (rlen-1, clen-1)
@@ -135,7 +135,7 @@ solve !cs !rs = dyna phi psi (rlen-1)
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (U.Vector (Char, Int)))) -> V.Vector (U.Vector (Char, Int))
+    phi :: NonEmptyListF Char (Cofree (NonEmptyListF Char) (V.Vector (U.Vector (Char, Int)))) -> V.Vector (U.Vector (Char, Int))
     phi (NonEmptyListF _ Nothing) = V.singleton $ U.generate clen $ \i -> (cs `C.index` i, 0)
     phi (NonEmptyListF !c (Just t)) = vec `V.cons` prevs
       where
