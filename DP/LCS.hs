@@ -127,6 +127,17 @@ regain solved rs = go [] (rlen-1, clen-1)
         (_, l) = (mat V.! i) U.! (j-1)
         (_, u) = (mat V.! (i-1)) U.! j
 
+regain' solved rs = candidates
+  where
+    !rlen = V.length solved - 1
+    rs' = V.fromList . C.unpack . C.reverse $ rs
+    candidates = V.ifoldr pi U.empty $ V.zip rs' solved
+      where
+        pi i (c, v) = (U.ifoldr pj U.empty v U.++)
+          where
+            pj j (c', n) res = if c /= c' then res
+                               else (n,(rlen-i,j),c') `U.cons` res
+
 solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
 solve !cs !rs = dyna phi psi (rlen-1)
   where
