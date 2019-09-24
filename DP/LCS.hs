@@ -110,8 +110,6 @@ main = do
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
-max3 x y z = max x (max y z)
-
 solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
 solve !cs !rs = dyna phi psi (rlen-1)
   where
@@ -131,5 +129,5 @@ solve !cs !rs = dyna phi psi (rlen-1)
             p (!l, !xs) | U.null xs = Nothing
                         | otherwise =
                             let (((_, !lu), (!c', !u)), !xs') = (U.head xs, U.tail xs)
-                                !l' = max3 l u (lu + fromEnum (c==c'))
+                                !l' = bool (max l u) (lu+1) (c==c')
                             in Just ((c', l'), (l', xs'))
