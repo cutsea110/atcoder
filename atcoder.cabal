@@ -20,7 +20,7 @@ executable atcoder
   main-is:             DP/LCS.hs
   -- other-modules:
   -- other-extensions:
-  ghc-options:        -rtsopts -fprof-auto -prof
+  -- ghc-options:        -rtsopts -fprof-auto -prof
   build-depends:       array
                      , base >=4.12
                      , bytestring

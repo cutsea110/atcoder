@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
+import Control.Monad
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.List (unfoldr)
@@ -107,7 +108,10 @@ main = do
   !s <- C.cons '\NUL' <$> C.getLine
   !t <- C.cons '\NUL' <$> C.getLine
   let solved = solve s t
-  putStrLn $ regain solved t
+      (n,_,_,ss) = head $ regain' solved t
+  --forM_ ss putStrLn
+  if n == 0 then putChar '\n'
+    else putStrLn . head $ ss
 
 data NonEmptyListF a b = NonEmptyListF a (Maybe b) deriving (Show, Functor)
 
@@ -127,16 +131,35 @@ regain solved rs = go [] (rlen-1, clen-1)
         (_, l) = (mat V.! i) U.! (j-1)
         (_, u) = (mat V.! (i-1)) U.! j
 
-regain' solved rs = candidates
+regain' :: V.Vector (U.Vector (Char, Int)) -> C.ByteString -> [(Int, (Int, Int), Char, [String])]
+regain' solved rs = map (n4th (map reverse)) $ dyna phi psi (maxlen, candidates)
   where
     !rlen = V.length solved - 1
     rs' = V.fromList . C.unpack . C.reverse $ rs
-    candidates = V.ifoldr pi U.empty $ V.zip rs' solved
+    maxlen = snd . U.last . V.head $ solved
+
+    n4th f (x,y,z,w) = (x,y,z,f w)
+    
+    !candidates = V.ifoldr pi U.empty $ V.zip rs' solved
       where
-        pi i (c, v) = (U.ifoldr pj U.empty v U.++)
+        pi !i (!c, !v) = (U.ifoldr pj U.empty v U.++)
           where
-            pj j (c', n) res = if c /= c' then res
-                               else (n,(rlen-i,j),c') `U.cons` res
+            pj !j (!c', !n) !res = if c /= c' then res
+                                   else (n,(rlen-i,j),c') `U.cons` res
+
+    psi (0, cs) = NonEmptyListF cs Nothing
+    psi (i, cs) = NonEmptyListF xs (Just (i-1, ys))
+      where
+        (xs, ys) = U.partition (\(n,_,_) -> n == i) cs
+
+    phi (NonEmptyListF v Nothing) = map (\(n,(i,j),c) -> (n,(i,j),c,[""])) $ U.toList v
+    phi (NonEmptyListF v (Just t)) = ret
+      where
+        prev = extract t
+        !ret = map (\(n,(i,j),c) ->
+                      let tmp = filter (\(_,(i',j'),_,_) -> i'<i && j'<j) prev
+                          res = concatMap (\(_,_,_,r) -> map (c:) r) tmp
+                      in (n,(i,j),c,res)) $ U.toList v
 
 solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
 solve !cs !rs = dyna phi psi (rlen-1)
