@@ -20,6 +20,7 @@ executable atcoder
   main-is:             DP/LCS.hs
   -- other-modules:
   -- other-extensions:
+  ghc-options:        -rtsopts
   build-depends:       array
                      , base >=4.12
                      , bytestring

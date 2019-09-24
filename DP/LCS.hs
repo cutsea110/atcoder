@@ -9,11 +9,11 @@ module Main where
 
 import Data.Bool (bool)
 import Data.Char (isSpace)
-import Data.List (unfoldr, filter, nub)
-import qualified Data.Vector as V
-import qualified Data.Vector.Mutable as VM
+import Data.List (unfoldr)
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
 
@@ -102,37 +102,36 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
-max3 x y z = max x (max y z)
-
 main :: IO ()
 main = do
   s <- C.cons '\NUL' <$> C.getLine
   t <- C.cons '\NUL' <$> C.getLine
-  C.putStrLn $ C.reverse $ head $ snd $ V.last $ solve s t
+  print $ solve s t
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
-solve :: C.ByteString -> C.ByteString -> V.Vector (Int, [C.ByteString])
+max3 x y z = max x (max y z)
+
+solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector Int)
 solve cs rs = dyna phi psi (rlen-1)
   where
+
     (clen, rlen) = (C.length cs, C.length rs)
     
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (Int, [C.ByteString]))) -> V.Vector (Int, [C.ByteString])
-    phi (NonEmptyListF _ Nothing) = V.replicate clen (0, [C.empty])
-    phi (NonEmptyListF c (Just t)) = V.unfoldr p (0, (0, [C.empty]))
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (U.Vector Int))) -> V.Vector (U.Vector Int)
+    phi (NonEmptyListF _ Nothing) = V.singleton $ U.replicate clen 0
+    phi (NonEmptyListF c (Just t)) = vec `V.cons` prevs
       where
-        prev = extract t
-        p (i, lhs@(l, hs)) | i == 0 = Just (lhs, (i+1, lhs))
-                           | i < clen = Just (new, (i+1, new))
-                           | otherwise = Nothing
+        prevs = extract t
+        prev = V.head prevs
+        vec = U.unfoldr p (0, 0)
+        p (i, l) | i == 0 = Just (0, (i+1, 0))
+                 | i < clen = Just (n', (i+1, n'))
+                 | otherwise = Nothing
           where
-            new = (n', hs')            
-            n' = bool (max l u) (lu+1) upd
-            hs' = bool (nub . filter ((n'==).C.length) $ uh ++ luh) (map (c' `C.cons`) hs) upd
-            
-            (c', upd) = (cs `C.index` i, c == c')
-            (u, uh) = prev V.! i
-            (lu, luh) = prev V.! (i-1)
+            n' = max3 l u (lu + bool 0 1 (c == cs `C.index` i))
+            u = prev U.! i
+            lu = prev U.! (i-1)
