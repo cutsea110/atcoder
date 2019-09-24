@@ -131,26 +131,26 @@ regain solved rs = go [] (rlen-1, clen-1)
         (_, l) = (mat V.! i) U.! (j-1)
         (_, u) = (mat V.! (i-1)) U.! j
 
+n4th f (x,y,z,w) = (x,y,z,f w)
+
 regain' :: V.Vector (U.Vector (Char, Int)) -> C.ByteString -> [(Int, (Int, Int), Char, [String])]
 regain' solved rs = map (n4th (map reverse)) $ dyna phi psi (maxlen, candidates)
   where
-    !rlen = V.length solved - 1
+    !ridx = V.length solved - 1
+    !cidx = U.length (V.head solved) - 1
     rs' = V.fromList . C.unpack . C.reverse $ rs
     maxlen = snd . U.last . V.head $ solved
 
-    n4th f (x,y,z,w) = (x,y,z,f w)
-    
-    !candidates = V.ifoldr pi U.empty $ V.zip rs' solved
+    !candidates = U.map snd . U.filter fst $! U.zipWith p vs xs
       where
-        pi !i (!c, !v) = (U.ifoldr pj U.empty v U.++)
-          where
-            pj !j (!c', !n) !res = if c /= c' then res
-                                   else (n,(rlen-i,j),c') `U.cons` res
+        !vs = U.concat . V.toList $ solved
+        p (!c',!n) (!c,!i,!j) = (c'==c,(n,(i,j),c'))
+        !xs = U.fromList [(c,i,j) | i <- [ridx,ridx-1..0], j <- [0..cidx], let c = rs `C.index` i]
 
-    psi (0, cs) = NonEmptyListF cs Nothing
-    psi (i, cs) = NonEmptyListF xs (Just (i-1, ys))
+    psi (0, !cs) = NonEmptyListF cs Nothing
+    psi (i, !cs) = NonEmptyListF xs (Just (i-1, ys))
       where
-        (xs, ys) = U.partition (\(n,_,_) -> n == i) cs
+        (!xs, !ys) = U.partition (\(n,_,_) -> n == i) cs
 
     phi (NonEmptyListF v Nothing) = map (\(n,(i,j),c) -> (n,(i,j),c,[""])) $ U.toList v
     phi (NonEmptyListF v (Just t)) = ret
