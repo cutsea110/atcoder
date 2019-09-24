@@ -139,9 +139,9 @@ solve !cs !rs = dyna phi psi (rlen-1)
     phi (NonEmptyListF _ Nothing) = V.singleton $ U.generate clen $ \i -> (cs `C.index` i, 0)
     phi (NonEmptyListF !c (Just t)) = vec `V.cons` prevs
       where
-        !prevs = extract t
-        !prev = V.head prevs
-        !vec = U.cons ('\NUL', 0) $ U.unfoldr p (0, U.zip prev (U.tail prev))
+        prevs = extract t
+        prev = V.head prevs
+        vec = U.cons ('\NUL', 0) $! U.unfoldr p (0, U.zip prev (U.tail prev))
           where
             p (!l, !xs) | U.null xs = Nothing
                         | otherwise =
