@@ -10,7 +10,8 @@ module Main where
 import Control.Monad
 import Data.Bool (bool)
 import Data.Char (isSpace)
-import Data.List (unfoldr)
+import Data.Function (on)
+import Data.List (unfoldr, sortBy)
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector as V
@@ -30,6 +31,10 @@ getIntVec :: Int -> IO (U.Vector Int)
 getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 
 ----------------------------
+fst3 (x,_,_) = x
+snd3 (_,y,_) = y
+thd3 (_,_,z) = z
+
 pair (f, g) x = (f x, g x)
 cross (f, g) (x, y) = (f x, g y)
 
@@ -141,16 +146,17 @@ regain' solved rs = map (n4th (map reverse)) $ dyna phi psi (maxlen, candidates)
     rs' = V.fromList . C.unpack . C.reverse $ rs
     maxlen = snd . U.last . V.head $ solved
 
-    !candidates = U.map snd . U.filter fst $! U.zipWith p vs xs
+    !candidates = order . U.map snd . U.filter fst $! U.zipWith p vs xs
       where
-        !vs = U.concat . V.toList $ solved
+        order = U.fromList . sortBy (flip compare `on` fst3) . U.toList
         p (!c',!n) (!c,!i,!j) = (c'==c,(n,(i,j),c'))
+        !vs = U.fromList . U.toList . U.concat  . V.toList $ solved
         !xs = U.fromList [(c,i,j) | i <- [ridx,ridx-1..0], j <- [0..cidx], let c = rs `C.index` i]
 
     psi (0, !cs) = NonEmptyListF cs Nothing
     psi (i, !cs) = NonEmptyListF xs (Just (i-1, ys))
       where
-        (!xs, !ys) = U.partition (\(n,_,_) -> n == i) cs
+        (!xs, !ys) = {- U.partition (\(n,_,_) -> n == i) cs -} U.break ((i/=).fst3) cs
 
     phi (NonEmptyListF v Nothing) = map (\(n,(i,j),c) -> (n,(i,j),c,[""])) $ U.toList v
     phi (NonEmptyListF v (Just t)) = ret
