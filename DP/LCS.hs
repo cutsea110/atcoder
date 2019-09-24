@@ -104,34 +104,32 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 main :: IO ()
 main = do
-  s <- C.cons '\NUL' <$> C.getLine
-  t <- C.cons '\NUL' <$> C.getLine
+  !s <- C.cons '\NUL' <$> C.getLine
+  !t <- C.cons '\NUL' <$> C.getLine
   print $ solve s t
 
 data NonEmptyListF a = NonEmptyListF Char (Maybe a) deriving (Show, Functor)
 
 max3 x y z = max x (max y z)
 
-solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector Int)
-solve cs rs = dyna phi psi (rlen-1)
+solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
+solve !cs !rs = dyna phi psi (rlen-1)
   where
-
-    (clen, rlen) = (C.length cs, C.length rs)
+    (!clen, !rlen) = (C.length cs, C.length rs)
     
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (U.Vector Int))) -> V.Vector (U.Vector Int)
-    phi (NonEmptyListF _ Nothing) = V.singleton $ U.replicate clen 0
-    phi (NonEmptyListF c (Just t)) = vec `V.cons` prevs
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (U.Vector (Char, Int)))) -> V.Vector (U.Vector (Char, Int))
+    phi (NonEmptyListF _ Nothing) = V.singleton $ U.generate clen $ \i -> (cs `C.index` i, 0)
+    phi (NonEmptyListF !c (Just t)) = vec `V.cons` prevs
       where
-        prevs = extract t
-        prev = V.head prevs
-        vec = U.unfoldr p (0, 0)
-        p (i, l) | i == 0 = Just (0, (i+1, 0))
-                 | i < clen = Just (n', (i+1, n'))
-                 | otherwise = Nothing
+        !prevs = extract t
+        !prev = V.head prevs
+        !vec = U.cons ('\NUL', 0) $ U.unfoldr p (0, U.zip prev (U.tail prev))
           where
-            n' = max3 l u (lu + bool 0 1 (c == cs `C.index` i))
-            u = prev U.! i
-            lu = prev U.! (i-1)
+            p (!l, !xs) | U.null xs = Nothing
+                        | otherwise =
+                            let (((_, !lu), (!c', !u)), !xs') = (U.head xs, U.tail xs)
+                                !l' = max3 l u (lu + fromEnum (c==c'))
+                            in Just ((c', l'), (l', xs'))
