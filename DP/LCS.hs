@@ -9,7 +9,7 @@ module Main where
 
 import Data.Bool (bool)
 import Data.Char (isSpace)
-import Data.List (unfoldr)
+import Data.List (unfoldr, foldl')
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector as V
@@ -28,7 +28,40 @@ getInts = unfoldr parseInt <$> C.getLine
 getIntVec :: Int -> IO (U.Vector Int)
 getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 
-----------------------------
+---------------------------------------------------------
+data SkewHeap a = Empty
+                | SkewNode a (SkewHeap a) (SkewHeap a)
+                deriving (Show)
+
+(+++) :: Ord a => SkewHeap a -> SkewHeap a -> SkewHeap a
+heap1@(SkewNode x1 l1 r1) +++ heap2@(SkewNode x2 l2 r2) 
+  | x1 >= x2   = SkewNode x1 (heap2 +++ r1) l1 
+  | otherwise  = SkewNode x2 (heap1 +++ r2) l2
+Empty +++ heap = heap
+heap +++ Empty = heap
+
+node :: a -> SkewHeap a
+node x = SkewNode x Empty Empty
+
+extractMax Empty = Nothing
+extractMax (SkewNode x l r ) = Just (x , l +++ r )
+
+toSkewHeap :: Ord a => [a] -> SkewHeap a
+toSkewHeap = foldl' (+++) Empty . map node
+
+fromSkewHeap :: SkewHeap a -> [a]
+fromSkewHeap = foldSkewHeap [] (\a l r -> a:(l ++ r))
+
+foldSkewHeap :: b -> (a -> b -> b -> b) -> SkewHeap a -> b
+foldSkewHeap c f = u
+  where
+    u Empty = c
+    u (SkewNode a l r) = f a (u l) (u r)
+
+sumSkewHeap :: SkewHeap Int -> Integer
+sumSkewHeap = foldSkewHeap 0 (\a l r -> fromIntegral a + l + r)
+
+---------------------------------------------------------
 pair (f, g) x = (f x, g x)
 cross (f, g) (x, y) = (f x, g y)
 
@@ -127,16 +160,17 @@ regain solved rs = go [] (rlen-1, clen-1)
         (_, l) = (mat V.! i) U.! (j-1)
         (_, u) = (mat V.! (i-1)) U.! j
 
-regain' solved rs = candidates
+data R = R { len :: Int, idx :: (Int, Int), ch :: Char } deriving (Show, Eq)
+instance Ord R where
+  R n (i, j) _ <= R n' (i', j') _ = n < n' || n == n' && i < i' || i == i' && j <= j'
+
+regain' solved rs = toSkewHeap ts
   where
-    !rlen = V.length solved - 1
-    rs' = V.fromList . C.unpack . C.reverse $ rs
-    candidates = V.ifoldr pi U.empty $ V.zip rs' solved
-      where
-        pi i (c, v) = (U.ifoldr pj U.empty v U.++)
-          where
-            pj j (c', n) res = if c /= c' then res
-                               else (n,(rlen-i,j),c') `U.cons` res
+    (rlen, clen) = (V.length solved, U.length $ V.head solved)
+    !mat = U.toList . U.concat . V.toList . V.reverse $ solved
+    idxs = [(rs `C.index` i,i,j) | i <- [0..rlen-1], j <- [0..clen-1]]
+
+    ts = map snd . filter fst $ zipWith (\(c,i,j) (c',n) -> (c==c',(n,(i,j),c'))) idxs mat
 
 solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
 solve !cs !rs = dyna phi psi (rlen-1)
