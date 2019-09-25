@@ -58,6 +58,26 @@ foldSkewHeap c f = u
     u Empty = c
     u (SkewNode a l r) = f a (u l) (u r)
 
+paraSkewHeap :: b -> (a -> (SkewHeap a, b) -> (SkewHeap a, b) -> b) -> SkewHeap a -> b
+paraSkewHeap c g = u
+  where
+    u Empty = c
+    u (SkewNode a l r) = g a (l, u l) (r, u r)
+
+takeWhileSkewHeap :: (a -> Bool) -> SkewHeap a -> SkewHeap a
+takeWhileSkewHeap p = foldSkewHeap c f
+  where
+    c = Empty
+    f a l r | p a = SkewNode a l r
+            | otherwise = Empty
+
+dropWhileSkewHeap :: Ord a => (a -> Bool) -> SkewHeap a -> SkewHeap a
+dropWhileSkewHeap p = paraSkewHeap c g
+  where
+    c = Empty
+    g a (l, l') (r, r') | p a = l' +++ r'
+                        | otherwise = SkewNode a l r
+
 sumSkewHeap :: SkewHeap Int -> Integer
 sumSkewHeap = foldSkewHeap 0 (\a l r -> fromIntegral a + l + r)
 
