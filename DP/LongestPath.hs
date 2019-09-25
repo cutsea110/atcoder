@@ -7,8 +7,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
+import Control.Monad (replicateM)
 import Data.Bool (bool)
 import Data.Char (isSpace)
+import Data.Graph
 import Data.List (unfoldr, foldl')
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -102,14 +104,34 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
-getTuple :: IO (Int, Int)
+getTuple :: IO Edge
 getTuple = do
   (x:y:_) <- getInts
   return (x, y)
 
+getIdxTuple :: IO Edge
+getIdxTuple = cross (pred, pred) <$> getTuple
+
 main :: IO ()
 main = do
+  (n, m, xys) <- getProblem
+  print $ solve n xys
+
+getProblem :: IO (Int, Int, U.Vector Edge)
+getProblem = do
   (n, m) <- getTuple
-  xys <- U.replicateM m getTuple
-  print (n, m)
-  U.forM_ xys print
+  xys <- U.replicateM m getIdxTuple
+  return (n, m, xys)
+
+data NonEmptyListF a = NonEmptyListF {-# UNPACK #-} !Vertex (Maybe a) deriving (Show, Functor)
+
+-- solve :: Int -> [Edge] -> [Vertex]
+solve n xys = dyna phi psi (n-1)
+  where
+    vs = U.fromList . topSort . buildG (0,n-1) . U.toList $ xys
+
+    psi 0 = NonEmptyListF (vs U.! (n-1)) Nothing
+    psi i = NonEmptyListF (vs U.! (n-1-i)) (Just (i-1))
+
+    phi (NonEmptyListF v Nothing) = v
+    phi (NonEmptyListF v (Just t)) = extract t
