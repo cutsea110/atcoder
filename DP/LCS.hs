@@ -29,59 +29,6 @@ getIntVec :: Int -> IO (U.Vector Int)
 getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 
 ---------------------------------------------------------
-data SkewHeap a = Empty
-                | SkewNode a (SkewHeap a) (SkewHeap a)
-                deriving (Show)
-
-(+++) :: Ord a => SkewHeap a -> SkewHeap a -> SkewHeap a
-heap1@(SkewNode x1 l1 r1) +++ heap2@(SkewNode x2 l2 r2) 
-  | x1 >= x2   = SkewNode x1 (heap2 +++ r1) l1 
-  | otherwise  = SkewNode x2 (heap1 +++ r2) l2
-Empty +++ heap = heap
-heap +++ Empty = heap
-
-node :: a -> SkewHeap a
-node x = SkewNode x Empty Empty
-
-extractMax Empty = Nothing
-extractMax (SkewNode x l r ) = Just (x , l +++ r )
-
-toSkewHeap :: Ord a => [a] -> SkewHeap a
-toSkewHeap = foldl' (+++) Empty . map node
-
-fromSkewHeap :: SkewHeap a -> [a]
-fromSkewHeap = foldSkewHeap [] (\a l r -> a:(l ++ r))
-
-foldSkewHeap :: b -> (a -> b -> b -> b) -> SkewHeap a -> b
-foldSkewHeap c f = u
-  where
-    u Empty = c
-    u (SkewNode a l r) = f a (u l) (u r)
-
-paraSkewHeap :: b -> (a -> (SkewHeap a, b) -> (SkewHeap a, b) -> b) -> SkewHeap a -> b
-paraSkewHeap c g = u
-  where
-    u Empty = c
-    u (SkewNode a l r) = g a (l, u l) (r, u r)
-
-takeWhileSkewHeap :: (a -> Bool) -> SkewHeap a -> SkewHeap a
-takeWhileSkewHeap p = foldSkewHeap c f
-  where
-    c = Empty
-    f a l r | p a = SkewNode a l r
-            | otherwise = Empty
-
-dropWhileSkewHeap :: Ord a => (a -> Bool) -> SkewHeap a -> SkewHeap a
-dropWhileSkewHeap p = paraSkewHeap c g
-  where
-    c = Empty
-    g a (l, l') (r, r') | p a = l' +++ r'
-                        | otherwise = SkewNode a l r
-
-sumSkewHeap :: SkewHeap Int -> Integer
-sumSkewHeap = foldSkewHeap 0 (\a l r -> fromIntegral a + l + r)
-
----------------------------------------------------------
 pair (f, g) x = (f x, g x)
 cross (f, g) (x, y) = (f x, g y)
 
@@ -162,35 +109,25 @@ main = do
   let solved = solve s t
   putStrLn $ regain solved t
 
-data NonEmptyListF a b = NonEmptyListF a (Maybe b) deriving (Show, Functor)
+data NonEmptyListF a = NonEmptyListF {-# UNPACK #-} !Char (Maybe a) deriving (Show, Functor)
+
+{-# INLINE (!!!) #-}
+(!!!) :: UM.Unbox a => V.Vector (U.Vector a) -> (Int, Int) -> a
+v !!! (i, j) = (v V.! i) U.! j
 
 regain :: V.Vector (U.Vector (Char, Int)) -> C.ByteString -> String
-regain solved rs = go [] (rlen-1, clen-1)
+regain !solved rs = go [] (rlen-1, clen-1)
   where
-    (rlen, clen) = (V.length solved, U.length $ V.head solved)
+    (!rlen, !clen) = (V.length solved, U.length $ V.head solved)
     !mat = V.reverse solved
-    
-    go res (i, j) | i <= 0 || j <= 0 = res
-                  | n == l = go res (i, j-1)
-                  | n == u = go res (i-1, j)
-                  | otherwise = go (c':res) (i-1, j-1)
+
+    go :: String -> (Int, Int) -> String
+    go res (!i, !j) | i <= 0 || j <= 0 = res
+                    | n == snd (mat !!! (i,j-1)) = go res (i, j-1)
+                    | n == snd (mat !!! (i-1,j)) = go res (i-1, j)
+                    | otherwise = go (c':res) (i-1, j-1)
       where
-        c = rs `C.index` i
-        (c', n) = (mat V.! i) U.! j
-        (_, l) = (mat V.! i) U.! (j-1)
-        (_, u) = (mat V.! (i-1)) U.! j
-
-data R = R { len :: Int, idx :: (Int, Int), ch :: Char } deriving (Show, Eq)
-instance Ord R where
-  R n (i, j) _ <= R n' (i', j') _ = n < n' || n == n' && i < i' || i == i' && j <= j'
-
-regain' solved rs = toSkewHeap ts
-  where
-    (rlen, clen) = (V.length solved, U.length $ V.head solved)
-    !mat = U.toList . U.concat . V.toList . V.reverse $ solved
-    idxs = [(rs `C.index` i,i,j) | i <- [0..rlen-1], j <- [0..clen-1]]
-
-    ts = map snd . filter fst $ zipWith (\(c,i,j) (c',n) -> (c==c',(n,(i,j),c'))) idxs mat
+        (!c', !n) = mat !!! (i, j)
 
 solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
 solve !cs !rs = dyna phi psi (rlen-1)
@@ -200,9 +137,9 @@ solve !cs !rs = dyna phi psi (rlen-1)
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
-    phi :: NonEmptyListF Char (Cofree (NonEmptyListF Char) (V.Vector (U.Vector (Char, Int)))) -> V.Vector (U.Vector (Char, Int))
+    phi :: NonEmptyListF (Cofree NonEmptyListF (V.Vector (U.Vector (Char, Int)))) -> V.Vector (U.Vector (Char, Int))
     phi (NonEmptyListF _ Nothing) = V.singleton $ U.generate clen $ \i -> (cs `C.index` i, 0)
-    phi (NonEmptyListF !c (Just t)) = vec `V.cons` prevs
+    phi (NonEmptyListF c (Just t)) = vec `V.cons` prevs
       where
         prevs = extract t
         prev = V.head prevs
@@ -210,6 +147,7 @@ solve !cs !rs = dyna phi psi (rlen-1)
           where
             p (!l, !xs) | U.null xs = Nothing
                         | otherwise =
-                            let (((_, !lu), (!c', !u)), !xs') = (U.head xs, U.tail xs)
+                            let ((_, !lu), (!c', !u)) = U.head xs
+                                !xs' = U.tail xs
                                 !l' = bool (max l u) (lu+1) (c==c')
                             in Just ((c', l'), (l', xs'))
