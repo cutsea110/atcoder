@@ -17,7 +17,7 @@ build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
 
 executable atcoder
-  main-is:             DP/LCS.hs
+  main-is:             DP/LongestPath.hs
   -- other-modules:
   -- other-extensions:
   ghc-options:        -rtsopts -fprof-auto -prof
