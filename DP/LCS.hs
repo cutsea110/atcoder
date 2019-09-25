@@ -123,10 +123,12 @@ regain !solved rs = go [] (rlen-1, clen-1)
 
     go :: String -> (Int, Int) -> String
     go res (!i, !j) | i <= 0 || j <= 0 = res
-                    | n == snd (mat !!! (i,j-1)) = go res (i, j-1)
-                    | n == snd (mat !!! (i-1,j)) = go res (i-1, j)
+                    | n == snd (mat !!! u) = go res u
+                    | n == snd (mat !!! l) = go res l
                     | otherwise = go (c':res) (i-1, j-1)
       where
+        !u = (i, j-1)
+        !l = (i-1, j)
         (!c', !n) = mat !!! (i, j)
 
 solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
