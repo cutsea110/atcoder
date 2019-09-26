@@ -166,6 +166,7 @@ solve n xys = dyna phi psi (n-1)
       | null bps = 0
       | otherwise = back 0 1 bps prev + 1
 
+    back :: Int -> Int -> [Int] -> NonEmptyListF (Cofree NonEmptyListF Int) -> Int
     back ret i [] _ = ret
     back ret i bps@(j:js) nel@(NonEmptyListF _ mv)
       | i == j = maybe ret (\t -> back (max ret (extract t)) (i+1) js (sub t)) mv
