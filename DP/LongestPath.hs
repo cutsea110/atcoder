@@ -160,6 +160,7 @@ solve n xys = dyna phi psi (n-1)
     psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n') Nothing
     psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i)) (Just (i-1))
 
+    phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
     phi (NonEmptyListF _ Nothing) = 0 -- absolutely _ has empty list.
     phi prev@(NonEmptyListF (_, bps) (Just t))
       | null bps = 0
