@@ -11,7 +11,7 @@ import Control.Monad (replicateM)
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Graph (Vertex, Edge, buildG, topSort)
-import Data.List (unfoldr, foldl')
+import Data.List (unfoldr, foldl', sort)
 import qualified Data.Map as Map
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -157,8 +157,15 @@ solve n xys = dyna phi psi (n-1)
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
 
-    psi 0 = NonEmptyListF (vs U.! n', ds' V.! n') Nothing
-    psi i = NonEmptyListF (vs U.! (n'-i), ds' V.! (n'-i)) (Just (i-1))
+    psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n') Nothing
+    psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i)) (Just (i-1))
 
-    phi (NonEmptyListF v Nothing) = v
-    phi (NonEmptyListF v (Just t)) = extract t
+    phi (NonEmptyListF _ Nothing) = 0 -- absolutely _ has empty list.
+    phi prev@(NonEmptyListF (_, bps) (Just t))
+      | null bps = 0
+      | otherwise = back 0 1 bps prev + 1
+
+    back ret i [] _ = ret
+    back ret i bps@(j:js) nel@(NonEmptyListF _ mv)
+      | i == j = maybe ret (\t -> back (max ret (extract t)) (i+1) js (sub t)) mv
+      | otherwise = back ret (i+1) bps nel
