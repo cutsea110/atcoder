@@ -123,15 +123,24 @@ getProblem = do
   xys <- U.replicateM m getIdxTuple
   return (n, m, xys)
 
-data NonEmptyListF a = NonEmptyListF {-# UNPACK #-} !Vertex (Maybe a) deriving (Show, Functor)
+data NonEmptyListF a = NonEmptyListF (Vertex, [Vertex]) (Maybe a) deriving (Show, Functor)
+
+targets :: Int -> U.Vector Edge -> V.Vector [Vertex]
+targets n es = V.create $ do
+  vec <- VM.replicate n []
+  U.forM_ es $ \(s, t) -> do
+    VM.modify vec (t:) s
+  return vec
 
 -- solve :: Int -> [Edge] -> [Vertex]
 solve n xys = dyna phi psi (n-1)
   where
+    !n' = n-1
     vs = U.fromList . topSort . buildG (0,n-1) . U.toList $ xys
+    ds = targets n xys
 
-    psi 0 = NonEmptyListF (vs U.! (n-1)) Nothing
-    psi i = NonEmptyListF (vs U.! (n-1-i)) (Just (i-1))
+    psi 0 = NonEmptyListF (vs U.! n', ds V.! n') Nothing
+    psi i = NonEmptyListF (vs U.! (n'-i), ds V.! (n'-i)) (Just (i-1))
 
     phi (NonEmptyListF v Nothing) = v
-    phi (NonEmptyListF v (Just t)) = extract t
+    phi (NonEmptyListF v (Just t)) = v
