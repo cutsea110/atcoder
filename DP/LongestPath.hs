@@ -10,7 +10,7 @@ module Main where
 import Control.Monad (replicateM)
 import Data.Bool (bool)
 import Data.Char (isSpace)
-import Data.Graph
+import Data.Graph (Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl')
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
