@@ -12,6 +12,7 @@ import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Graph (Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl')
+import qualified Data.Map as Map
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector as V
@@ -31,6 +32,7 @@ getIntVec :: Int -> IO (U.Vector Int)
 getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 
 ---------------------------------------------------------
+swap (x, y) = (y, x)
 pair (f, g) x = (f x, g x)
 cross (f, g) (x, y) = (f x, g y)
 
@@ -132,15 +134,31 @@ targets n es = V.create $ do
     VM.modify vec (t:) s
   return vec
 
+compileWith :: Map.Map Vertex Int -> V.Vector [Vertex] -> U.Vector Vertex -> V.Vector [Int]
+compileWith dict ds vs = V.create $ do
+  vec <- VM.replicate (U.length vs) []
+  U.forM_ vs $ \v -> do
+    let ts = ds V.! v
+        vi = dict Map.! v
+        tsi = map ((subtract vi).(dict Map.!)) (ds V.! v)
+    VM.write vec vi tsi
+  return vec
+
 -- solve :: Int -> [Edge] -> [Vertex]
 solve n xys = dyna phi psi (n-1)
   where
     !n' = n-1
+    vs :: U.Vector Vertex
     vs = U.fromList . topSort . buildG (0,n-1) . U.toList $ xys
+    ds :: V.Vector [Vertex]
     ds = targets n xys
+    dict :: Map.Map Vertex Int
+    dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
+    ds' :: V.Vector [Int]
+    ds' = compileWith dict ds vs
 
-    psi 0 = NonEmptyListF (vs U.! n', ds V.! n') Nothing
-    psi i = NonEmptyListF (vs U.! (n'-i), ds V.! (n'-i)) (Just (i-1))
+    psi 0 = NonEmptyListF (vs U.! n', ds' V.! n') Nothing
+    psi i = NonEmptyListF (vs U.! (n'-i), ds' V.! (n'-i)) (Just (i-1))
 
     phi (NonEmptyListF v Nothing) = v
-    phi (NonEmptyListF v (Just t)) = v
+    phi (NonEmptyListF v (Just t)) = extract t
