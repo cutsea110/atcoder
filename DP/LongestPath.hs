@@ -168,4 +168,4 @@ solve n xys = dyna phi psi (n-1)
     back ret i [] _ = ret
     back ret i bps@(j:js) nel@(NonEmptyListF _ mv)
       | i == j = maybe ret (\t -> back (max ret (extract t)) (i+1) js (sub t)) mv
-      | otherwise = back ret (i+1) bps nel
+      | otherwise = let Just t = mv in back ret (i+1) bps (sub t)
