@@ -148,7 +148,7 @@ main = do
   (n, m, xys) <- getProblem
   print $ solve n xys
 
--- solve :: Int -> [Edge] -> [Vertex]
+solve :: Int -> U.Vector Edge -> Int
 solve n xys = dyna phi psi (n-1)
   where
     !n' = n-1
