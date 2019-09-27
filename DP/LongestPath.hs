@@ -7,13 +7,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
-import Control.Monad (replicateM)
+import System.IO (hPutStr, hPutStrLn, stdin, stdout, withFile, IOMode(..))
+import Control.Monad (replicateM, forM_)
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
 import Data.Graph (Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl', sort, (\\), delete)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector as V
@@ -148,6 +150,17 @@ main = do
   (n, m, xys) <- getProblem
   print $ solve n xys
 
+gensample = withFile "DP/lp-sample.txt" WriteMode $ \h -> do
+  let xs = [(i,i+j) | i <- [1..100], j <- [1..100]]
+  let (x, y) = (max 10000 (max (maximum (map fst xs)) (maximum (map snd xs))), length xs)
+  hPutStr h (show x)
+  hPutStr h " "
+  hPutStrLn h (show y)
+  forM_ xs $ \(x, y) -> do
+    hPutStr h (show x)
+    hPutStr h " "
+    hPutStrLn h (show y)
+
 solve :: Int -> U.Vector Edge -> Int
 solve n xys = dyna phi psi (n-1)
   where
@@ -160,12 +173,11 @@ solve n xys = dyna phi psi (n-1)
     dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
+    nosupports = Set.toList $ Set.fromList [0..n'] Set.\\ (Set.fromList $ map snd $ U.toList xys)
+    startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) nosupports
 
     psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
     psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
-      where
-        nosupports = [0..n'] \\ map snd (U.toList xys)
-        startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) nosupports
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
     phi (NonEmptyListF _ Nothing) = 0
