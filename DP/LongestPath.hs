@@ -10,8 +10,9 @@ module Main where
 import Control.Monad (replicateM)
 import Data.Bool (bool)
 import Data.Char (isSpace)
+import Data.Function (on)
 import Data.Graph (Vertex, Edge, buildG, topSort)
-import Data.List (unfoldr, foldl', sort)
+import Data.List (unfoldr, foldl', sort, (\\), delete)
 import qualified Data.Map as Map
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -114,18 +115,13 @@ getTuple = do
 getIdxTuple :: IO Edge
 getIdxTuple = cross (pred, pred) <$> getTuple
 
-main :: IO ()
-main = do
-  (n, m, xys) <- getProblem
-  print $ solve n xys
-
 getProblem :: IO (Int, Int, U.Vector Edge)
 getProblem = do
   (n, m) <- getTuple
   xys <- U.replicateM m getIdxTuple
   return (n, m, xys)
 
-data NonEmptyListF a = NonEmptyListF (Vertex, [Vertex]) (Maybe a) deriving (Show, Functor)
+data NonEmptyListF a = NonEmptyListF (Vertex, [Vertex], [Int]) (Maybe a) deriving (Show, Functor)
 
 targets :: Int -> U.Vector Edge -> V.Vector [Vertex]
 targets n es = V.create $ do
@@ -134,22 +130,30 @@ targets n es = V.create $ do
     VM.modify vec (t:) s
   return vec
 
+transposition :: Map.Map Vertex Int -> Vertex -> Vertex -> Int
+transposition dict s e = (dict Map.! e) - (dict Map.! s)
+
+transpositions :: Map.Map Vertex Int -> Vertex -> [Vertex] -> [Int]
+transpositions dict s = map (transposition dict s)
+
 compileWith :: Map.Map Vertex Int -> V.Vector [Vertex] -> U.Vector Vertex -> V.Vector [Int]
 compileWith dict ds vs = V.create $ do
   vec <- VM.replicate (U.length vs) []
-  U.forM_ vs $ \v -> do
-    let ts = ds V.! v
-        vi = dict Map.! v
-        tsi = map ((subtract vi).(dict Map.!)) (ds V.! v)
-    VM.write vec vi tsi
+  U.forM_ vs $ \s -> do
+    VM.write vec (dict Map.! s) $ transpositions dict s (ds V.! s)
   return vec
+
+main :: IO ()
+main = do
+  (n, m, xys) <- getProblem
+  print $ solve n xys
 
 -- solve :: Int -> [Edge] -> [Vertex]
 solve n xys = dyna phi psi (n-1)
   where
     !n' = n-1
     vs :: U.Vector Vertex
-    vs = U.fromList . topSort . buildG (0,n-1) . U.toList $ xys
+    vs = U.fromList . topSort . buildG (0, n') . U.toList $ xys
     ds :: V.Vector [Vertex]
     ds = targets n xys
     dict :: Map.Map Vertex Int
@@ -157,17 +161,12 @@ solve n xys = dyna phi psi (n-1)
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
 
-    psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n') Nothing
-    psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i)) (Just (i-1))
+    psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
+    psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
+      where
+        nosupports = [0..n'] \\ map snd (U.toList xys)
+        startlist = delete 0 $ transpositions dict (vs U.! 0) nosupports
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF (Int, Int)) -> (Int, Int)
-    phi (NonEmptyListF _ Nothing) = (0, 0) -- absolutely _ has empty list.
-    phi prev@(NonEmptyListF (_, bps) (Just t))
-      | null bps = (0, uncurry max $ extract t) -- dig more
-      | otherwise = let (x, y) = back 0 1 bps prev in (x + 1, y)
-
-    back :: Int -> Int -> [Int] -> NonEmptyListF (Cofree NonEmptyListF (Int, Int)) -> (Int, Int)
-    back ret i [] _ = (ret, 0)
-    back ret i bps@(j:js) nel@(NonEmptyListF _ mv)
-      | i == j = maybe (ret, 0) (\t -> back (max ret (fst $ extract t)) (i+1) js (sub t)) mv
-      | otherwise = let Just t = mv in back ret (i+1) bps (sub t)
+    phi :: NonEmptyListF (Cofree NonEmptyListF (Int, [Int])) -> (Int, [Int])
+    phi (NonEmptyListF _ Nothing) = (0, []) -- absolutely _ has empty list.
+    phi prev@(NonEmptyListF (v, bps, ss) (Just t)) = (v, ss)
