@@ -7,14 +7,13 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
-import System.IO (hPutStr, hPutStrLn, stdin, stdout, withFile, IOMode(..))
 import Control.Monad (replicateM, forM_)
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
 import Data.Graph (Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl', sort, (\\), delete)
-import qualified Data.Map as Map
+import qualified Data.IntMap as Map
 import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -22,6 +21,7 @@ import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Unsafe as B
+import System.IO (hPutStr, hPutStrLn, stdin, stdout, withFile, IOMode(..))
 
 type Parser a = C.ByteString -> Maybe (a, C.ByteString)
 
@@ -35,8 +35,11 @@ getIntVec :: Int -> IO (U.Vector Int)
 getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 
 ---------------------------------------------------------
+{-# INLINE swap #-}
 swap (x, y) = (y, x)
+{-# INLINE pair #-}
 pair (f, g) x = (f x, g x)
+{-# INLINE cross #-}
 cross (f, g) (x, y) = (f x, g y)
 
 newtype Fix f = In { out :: f (Fix f) }
@@ -132,13 +135,13 @@ targets n es = V.create $ do
     VM.modify vec (t:) s
   return vec
 
-transposition :: Map.Map Vertex Int -> Vertex -> Vertex -> Int
-transposition dict s e = (dict Map.! e) - (dict Map.! s)
+transposition :: Map.IntMap Int -> Map.Key -> Map.Key -> Int
+transposition dict = flip ((-) `on` (dict Map.!))
 
-transpositions :: Map.Map Vertex Int -> Vertex -> [Vertex] -> [Int]
-transpositions dict s = map (transposition dict s)
+transpositions :: Map.IntMap Int -> Map.Key -> [Map.Key] -> [Int]
+transpositions dict = map . (transposition dict)
 
-compileWith :: Map.Map Vertex Int -> V.Vector [Vertex] -> U.Vector Vertex -> V.Vector [Int]
+compileWith :: Map.IntMap Int -> V.Vector [Map.Key] -> U.Vector Map.Key -> V.Vector [Int]
 compileWith dict ds vs = V.create $ do
   vec <- VM.replicate (U.length vs) []
   U.forM_ vs $ \s -> do
@@ -151,7 +154,7 @@ main = do
   print $ solve n xys
 
 gensample = withFile "DP/lp-sample.txt" WriteMode $ \h -> do
-  let xs = [(i,i+j) | i <- [1..100], j <- [1..100]]
+  let xs = [(i,i+j) | i <- [1..1000], j <- [1..900]]
   let (x, y) = (max 10000 (max (maximum (map fst xs)) (maximum (map snd xs))), length xs)
   hPutStr h (show x)
   hPutStr h " "
@@ -166,15 +169,15 @@ solve n xys = dyna phi psi (n-1)
   where
     !n' = n-1
     vs :: U.Vector Vertex
-    vs = U.fromList . topSort . buildG (0, n') . U.toList $ xys
+    !vs = U.fromList . topSort . buildG (0, n') . U.toList $ xys
     ds :: V.Vector [Vertex]
     ds = targets n xys
-    dict :: Map.Map Vertex Int
+    dict :: Map.IntMap Int
     dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
-    nosupports = Set.toList $ Set.fromList [0..n'] Set.\\ (Set.fromList $ map snd $ U.toList xys)
-    startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) nosupports
+    !nosupports = Set.toList $ Set.fromAscList [0..n'] Set.\\ (Set.fromList $ map snd $ U.toList xys)
+    !startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) nosupports
 
     psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
     psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
