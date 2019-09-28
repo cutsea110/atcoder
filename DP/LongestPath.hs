@@ -14,7 +14,7 @@ import Data.Function (on)
 import Data.Graph (Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl', sort, (\\), delete)
 import qualified Data.IntMap as Map
-import qualified Data.Set as Set
+import qualified Data.IntSet as Set
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector as V
@@ -154,7 +154,7 @@ main = do
   print $ solve n xys
 
 gensample = withFile "DP/lp-sample.txt" WriteMode $ \h -> do
-  let xs = [(i,i+j) | i <- [1..1000], j <- [1..900]]
+  let xs = [(i,i+j) | i <- [1..1000], j <- [1..1000]]
   let (x, y) = (max 10000 (max (maximum (map fst xs)) (maximum (map snd xs))), length xs)
   hPutStr h (show x)
   hPutStr h " "
