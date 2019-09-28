@@ -13,8 +13,8 @@ import Data.Char (isSpace)
 import Data.Function (on)
 import Data.Graph (Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl', sort, (\\), delete)
-import qualified Data.IntMap as Map
-import qualified Data.IntSet as Set
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector as V
@@ -135,13 +135,13 @@ targets n es = V.create $ do
     VM.modify vec (t:) s
   return vec
 
-transposition :: Map.IntMap Int -> Map.Key -> Map.Key -> Int
+transposition :: Map.Map Vertex Int -> Vertex -> Vertex -> Int
 transposition dict = flip ((-) `on` (dict Map.!))
 
-transpositions :: Map.IntMap Int -> Map.Key -> [Map.Key] -> [Int]
+transpositions :: Map.Map Vertex Int -> Vertex -> [Vertex] -> [Int]
 transpositions dict = map . (transposition dict)
 
-compileWith :: Map.IntMap Int -> V.Vector [Map.Key] -> U.Vector Map.Key -> V.Vector [Int]
+compileWith :: Map.Map Vertex Int -> V.Vector [Vertex] -> U.Vector Vertex -> V.Vector [Int]
 compileWith dict ds vs = V.create $ do
   vec <- VM.replicate (U.length vs) []
   U.forM_ vs $ \s -> do
@@ -172,7 +172,7 @@ solve n xys = dyna phi psi (n-1)
     !vs = U.fromList . topSort . buildG (0, n') . U.toList $ xys
     ds :: V.Vector [Vertex]
     ds = targets n xys
-    dict :: Map.IntMap Int
+    dict :: Map.Map Vertex Int
     dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
