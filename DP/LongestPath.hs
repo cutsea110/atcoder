@@ -170,8 +170,9 @@ solve n xys = dyna phi psi (n-1)
     dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
-    startlist = delete 0 $ calcStart xys n
-
+    startlist :: [Int]
+    !startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) $ calcStart xys n'
+    
     psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
     psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
 
