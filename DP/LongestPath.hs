@@ -136,36 +136,30 @@ targets n es = V.create $ do
   return vec
 
 transposition :: Map.Map Vertex Int -> Vertex -> Vertex -> Int
-transposition dict = flip ((-) `on` (dict Map.!))
+transposition dict !s !e = (dict Map.! e) - (dict Map.! s)
 
 transpositions :: Map.Map Vertex Int -> Vertex -> [Vertex] -> [Int]
-transpositions dict = map . (transposition dict)
+transpositions dict !v !vs = map (transposition dict v) vs
 
 compileWith :: Map.Map Vertex Int -> V.Vector [Vertex] -> U.Vector Vertex -> V.Vector [Int]
 compileWith dict ds vs = V.create $ do
   vec <- VM.replicate (U.length vs) []
   U.forM_ vs $ \s -> do
-    VM.write vec (dict Map.! s) $ transpositions dict s (ds V.! s)
+    VM.write vec (dict Map.! s) $! transpositions dict s (ds V.! s)
   return vec
+
+calcStart :: U.Vector (Vertex, Vertex) -> Int -> [Vertex]
+calcStart xys n = filter (\k -> Map.notMember k me) [0..n]
+  where
+    !me = U.foldl' (\me' (_, v) -> bool me' (Map.insert v True me') (Map.notMember v me')) Map.empty xys
 
 main :: IO ()
 main = do
-  (n, m, xys) <- getProblem
+  (!n, !m, !xys) <- getProblem
   print $ solve n xys
 
-gensample = withFile "DP/lp-sample.txt" WriteMode $ \h -> do
-  let xs = [(i,i+j) | i <- [1..1000], j <- [1..1000]]
-  let (x, y) = (max 10000 (max (maximum (map fst xs)) (maximum (map snd xs))), length xs)
-  hPutStr h (show x)
-  hPutStr h " "
-  hPutStrLn h (show y)
-  forM_ xs $ \(x, y) -> do
-    hPutStr h (show x)
-    hPutStr h " "
-    hPutStrLn h (show y)
-
 solve :: Int -> U.Vector Edge -> Int
-solve n xys = dyna phi psi (n-1)
+solve n xys = dyna phi psi n'
   where
     !n' = n-1
     vs :: U.Vector Vertex
@@ -173,12 +167,12 @@ solve n xys = dyna phi psi (n-1)
     ds :: V.Vector [Vertex]
     ds = targets n xys
     dict :: Map.Map Vertex Int
-    dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
+    !dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
-    !nosupports = Set.toList $ Set.fromAscList [0..n'] Set.\\ (Set.fromList $ map snd $ U.toList xys)
-    !startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) nosupports
-
+    startlist :: [Int]
+    !startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) $! calcStart xys n'
+    
     psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
     psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
 
@@ -194,3 +188,15 @@ solve n xys = dyna phi psi (n-1)
     back ret i bps@(j:js) nel@(NonEmptyListF _ mv)
       | i == j = maybe ret (\t -> back (max ret (extract t)) (i+1) js (sub t)) mv
       | otherwise = let Just t = mv in back ret (i+1) bps (sub t)
+
+
+gensample = withFile "DP/lp-sample.txt" WriteMode $ \h -> do
+  let xs = [(i,i+j) | i <- [1..1000], j <- [1..1000]]
+  let (x, y) = (max 10000 (max (maximum (map fst xs)) (maximum (map snd xs))), length xs)
+  hPutStr h (show x)
+  hPutStr h " "
+  hPutStrLn h (show y)
+  forM_ xs $ \(x, y) -> do
+    hPutStr h (show x)
+    hPutStr h " "
+    hPutStrLn h (show y)
