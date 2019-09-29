@@ -148,10 +148,10 @@ compileWith dict ds vs = V.create $ do
     VM.write vec (dict Map.! s) $ transpositions dict s (ds V.! s)
   return vec
 
-calcStart :: U.Vector (Vertex, Vertex) -> U.Vector Vertex
-calcStart xys = U.filter (\k -> Map.member k me) $ U.map fst xys
+calcStart :: U.Vector (Vertex, Vertex) -> Int -> [Vertex]
+calcStart xys n = filter (\k -> Map.notMember k me) [0..n]
   where
-    me = U.foldl' (\me' (k, v) -> Map.insert v True me') Map.empty xys
+    me = U.foldl' (\me' (_, v) -> Map.insert v True me') Map.empty xys
 
 main :: IO ()
 main = do
@@ -170,7 +170,7 @@ solve n xys = dyna phi psi (n-1)
     dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
     ds' :: V.Vector [Int]
     ds' = compileWith dict ds vs
-    startlist = sort . delete 0 . U.toList . calcStart $ xys
+    startlist = delete 0 $ calcStart xys n
 
     psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
     psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
