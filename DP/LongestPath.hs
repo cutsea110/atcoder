@@ -173,8 +173,10 @@ solve n xys = dyna phi psi n'
     startlist :: [Int]
     !startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) $! calcStart xys n'
     
-    psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
-    psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
+    psi 0 = NonEmptyListF (vs U.! n', sorted, []) Nothing
+      where !sorted = sort $ ds' V.! n'
+    psi i = NonEmptyListF (vs U.! (n'-i), sorted, bool [] startlist (i == n')) (Just (i-1))
+      where !sorted = sort $ ds' V.! (n'-i)
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
     phi (NonEmptyListF _ Nothing) = 0
