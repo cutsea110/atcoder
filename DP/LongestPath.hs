@@ -193,15 +193,3 @@ solve n xys = dyna phi psi n'
     back ret i bps@(j:js) nel@(NonEmptyListF _ mv)
       | i == j = maybe ret (\t -> back (max ret (extract t)) (i+1) js (sub t)) mv
       | otherwise = let Just t = mv in back ret (i+1) bps (sub t)
-
-
-gensample = withFile "DP/lp-sample.txt" WriteMode $ \h -> do
-  let xs = [(i,i+j) | i <- [1..1000], j <- [1..1000]]
-  let (x, y) = (max 10000 (max (maximum (map fst xs)) (maximum (map snd xs))), length xs)
-  hPutStr h (show x)
-  hPutStr h " "
-  hPutStrLn h (show y)
-  forM_ xs $ \(x, y) -> do
-    hPutStr h (show x)
-    hPutStr h " "
-    hPutStrLn h (show y)
