@@ -35,11 +35,8 @@ getIntVec :: Int -> IO (U.Vector Int)
 getIntVec n = U.unfoldrN n parseInt <$> C.getLine
 
 ---------------------------------------------------------
-{-# INLINE swap #-}
 swap (x, y) = (y, x)
-{-# INLINE pair #-}
 pair (f, g) x = (f x, g x)
-{-# INLINE cross #-}
 cross (f, g) (x, y) = (f x, g y)
 
 newtype Fix f = In { out :: f (Fix f) }
@@ -176,10 +173,8 @@ solve n xys = dyna phi psi n'
     startlist :: [Int]
     !startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) $! calcStart xys n'
     
-    psi 0 = NonEmptyListF (vs U.! n', sorted, []) Nothing
-      where !sorted = sort $ ds' V.! n'
-    psi i = NonEmptyListF (vs U.! (n'-i), sorted, bool [] startlist (i == n')) (Just (i-1))
-      where !sorted = sort $ ds' V.! (n'-i)
+    psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
+    psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
     phi (NonEmptyListF _ Nothing) = 0
@@ -190,6 +185,7 @@ solve n xys = dyna phi psi n'
 
     back :: Int -> Int -> [Int] -> NonEmptyListF (Cofree NonEmptyListF Int) -> Int
     back ret i [] _ = ret
-    back ret i bps@(j:js) nel@(NonEmptyListF _ mv)
-      | i == j = maybe ret (\t -> back (max ret (extract t)) (i+1) js (sub t)) mv
-      | otherwise = let Just t = mv in back ret (i+1) bps (sub t)
+    back ret i _ (NonEmptyListF _ Nothing) = ret
+    back ret i bps@(j:js) nel@(NonEmptyListF _ (Just t))
+      | i == j = let !ret' = max ret (extract t) in back ret' (i+1) js (sub t)
+      | otherwise = back ret (i+1) bps (sub t)
