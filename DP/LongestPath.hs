@@ -41,15 +41,29 @@ cross (f, g) (x, y) = (f x, g y)
 
 newtype Fix f = In { out :: f (Fix f) }
 
-newtype Cofree f a = Cf { unCf :: (a, f (Cofree f a)) }
-extract :: Cofree f t -> t
-extract = fst . unCf
-sub :: Functor f => Cofree f a -> f (Cofree f a)
-sub = snd . unCf
+data Hisx f a x = Hisx { unHisx :: (a, f x) } deriving (Show, Functor)
+newtype Cofree f a = Cf { unCf :: Fix (Hisx f a) }
+instance Functor f => Functor (Cofree f) where
+  fmap f = Cf . ana (phi . out) . unCf
+    where phi (Hisx (a, x)) = Hisx (f a, x)
 
-newtype Free f a = Fr { unFr :: Either a (f (Free f a)) }
+extract :: Functor f => Cofree f t -> t
+extract cf = case out (unCf cf) of
+  Hisx (a, _) -> a
+
+sub :: Functor f => Cofree f a -> f (Cofree f a)
+sub cf = case out (unCf cf) of
+  Hisx (_, b) -> fmap Cf b
+
+data Futx f a x = Futx { unFutx :: Either a (f x) } deriving (Show, Functor)
+newtype Free f a = Fr { unFr :: Fix (Futx f a) }
+instance Functor f => Functor (Free f) where
+  fmap f = Fr . cata (In . phi) . unFr
+    where phi (Futx (Left a)) = Futx (Left (f a))
+          phi (Futx (Right x)) = Futx (Right x)
+
 inject :: a -> Free f a
-inject = Fr . Left
+inject = Fr . In . Futx . Left
 
 -- catamorphism
 cata :: Functor f => (f a -> a) -> Fix f -> a
@@ -71,16 +85,22 @@ apo :: Functor f => (t -> f (Either (Fix f) t)) -> t -> Fix f
 apo psi = In . fmap (uncurry either (id, apo psi)) . psi
 -- histomorphism
 histo :: Functor f => (f (Cofree f t) -> t) -> Fix f -> t
-histo phi = extract . cata (Cf . pair (phi, id))
+histo phi = extract . cata ap
+  where ap = cast . Hisx . pair (phi, id)
+        cast = Cf . In . fmap unCf
 -- futumorphism
 futu :: Functor f => (t -> f (Free f t)) -> t -> Fix f
-futu psi = ana (uncurry either (psi, id) . unFr) . inject
+futu psi = ana ap . inject
+  where ap = uncurry either (psi, id) . unFutx . cast
+        cast = fmap Fr . out . unFr
 -- chronomorphism
 chrono :: Functor f => (f (Cofree f b) -> b) -> (a -> f (Free f a)) -> a -> b
 chrono phi psi = extract . hylo phi' psi' . inject
   where
-    phi' = Cf . pair (phi, id)
-    psi' = uncurry either (psi, id) . unFr
+    phi' = toCofree . Hisx . pair (phi, id)
+    toCofree = Cf . In . fmap unCf
+    psi' = uncurry either (psi, id) . unFutx . fromFree
+    fromFree = fmap Fr . out . unFr
 -- cochronomorphism
 cochrono :: Functor f => (f (Cofree f t) -> t) -> (t -> f (Free f t)) -> Fix f -> Fix f
 cochrono phi psi = futu psi . histo phi
