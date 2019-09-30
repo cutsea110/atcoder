@@ -128,13 +128,12 @@ main = do
 solve (h, w) bs = dyna phi psi (h*w-1)
   where
     lim = 10^9+7
-    
     pos x = (x `div` w, x `mod` w)
     
     psi 0 = NonEmptyListF (bs `C.index` 0, pos 0) Nothing
     psi i = NonEmptyListF (bs `C.index` i, pos i) (Just (i-1))
 
---     phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
+    phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
     phi (NonEmptyListF (_, (i, j)) Nothing) = 1
     phi prev@(NonEmptyListF ('#', (i, j)) (Just t)) = 0
     phi prev@(NonEmptyListF ('.', (i, j)) (Just t))
@@ -143,6 +142,4 @@ solve (h, w) bs = dyna phi psi (h*w-1)
       | otherwise = (back 1 prev + back w prev) `mod` lim
 
     back 1 (NonEmptyListF _ (Just t)) = extract t
-    back i (NonEmptyListF _ (Just t)) = case sub t of
-      NonEmptyListF _ Nothing -> 1
-      prev@(NonEmptyListF _ (Just t')) -> back (i-1) prev
+    back i (NonEmptyListF _ (Just t)) = back (i-1) (sub t)
