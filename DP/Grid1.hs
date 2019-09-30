@@ -125,6 +125,7 @@ main = do
   bs <- C.concat <$> replicateM h C.getLine
   print $ solve (h, w) bs
 
+solve :: (Int, Int) -> C.ByteString -> Int
 solve (h, w) bs = dyna phi psi (h*w-1)
   where
     lim = 10^9+7
@@ -134,8 +135,8 @@ solve (h, w) bs = dyna phi psi (h*w-1)
     psi i = NonEmptyListF (bs `C.index` i, pos i) (Just (i-1))
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
-    phi (NonEmptyListF (_, (i, j)) Nothing) = 1
-    phi prev@(NonEmptyListF ('#', (i, j)) (Just t)) = 0
+    phi (NonEmptyListF _ Nothing) = 1
+    phi prev@(NonEmptyListF ('#', _) (Just t)) = 0
     phi prev@(NonEmptyListF ('.', (i, j)) (Just t))
       | i == 0 = back 1 prev
       | j == 0 = back w prev
