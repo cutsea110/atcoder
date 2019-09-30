@@ -126,8 +126,7 @@ main :: IO ()
 main = do
   (h, w) <- getTuple
   bss <- V.replicateM h C.getLine
-  let n = solve (h, w) bss
-  print $ U.last n `mod` (10^9+7)
+  print $ U.last $ solve (h, w) bss
 
 line0 :: C.ByteString -> U.Vector Int
 line0 = U.fromList . scanl1 (*) . C.foldr (\c s -> if c == '.' then 1:s else 0:s) []
@@ -135,8 +134,10 @@ line0 = U.fromList . scanl1 (*) . C.foldr (\c s -> if c == '.' then 1:s else 0:s
 lineI :: U.Vector Int -> C.ByteString -> U.Vector Int
 lineI vs = U.tail . U.scanl' f 0 . U.zip vs . conv
   where
+    !lim = 10^9+7
+    
     f _ (_, '#') = 0
-    f l (u, '.') = u+l
+    f l (u, '.') = (u+l) `mod` lim
 
 solve :: (Int, Int) -> V.Vector C.ByteString -> U.Vector Int
 solve (h, w) bss = dyna phi psi (h-1)
