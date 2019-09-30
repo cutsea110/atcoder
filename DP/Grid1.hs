@@ -117,30 +117,32 @@ getTuple = do
   (x:y:_) <- getInts
   return (x, y)
 
-data NonEmptyListF a = NonEmptyListF (Char, (Int, Int)) (Maybe a) deriving (Show, Functor)
+data NonEmptyListF a = NonEmptyListF C.ByteString (Maybe a) deriving (Show, Functor)
+
+conv :: C.ByteString -> U.Vector Char
+conv bs = U.generate (C.length bs) (bs `C.index`)
 
 main :: IO ()
 main = do
   (h, w) <- getTuple
-  bs <- C.concat <$> replicateM h C.getLine
-  print $ solve (h, w) bs
+  bss <- V.replicateM h C.getLine
+  let n = solve (h, w) bss
+  print $ U.last n `mod` (10^9+7)
 
-solve :: (Int, Int) -> C.ByteString -> Int
-solve (h, w) bs = dyna phi psi (h*w-1)
+line0 :: C.ByteString -> U.Vector Int
+line0 = U.fromList . scanl1 (*) . C.foldr (\c s -> if c == '.' then 1:s else 0:s) []
+
+lineI :: U.Vector Int -> C.ByteString -> U.Vector Int
+lineI vs = U.tail . U.scanl' f 0 . U.zip vs . conv
   where
-    lim = 10^9+7
-    pos x = (x `div` w, x `mod` w)
-    
-    psi 0 = NonEmptyListF (bs `C.index` 0, pos 0) Nothing
-    psi i = NonEmptyListF (bs `C.index` i, pos i) (Just (i-1))
+    f _ (_, '#') = 0
+    f l (u, '.') = u+l
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
-    phi (NonEmptyListF _ Nothing) = 1
-    phi prev@(NonEmptyListF ('#', _) (Just t)) = 0
-    phi prev@(NonEmptyListF ('.', (i, j)) (Just t))
-      | i == 0 = back 1 prev
-      | j == 0 = back w prev
-      | otherwise = (back 1 prev + back w prev) `mod` lim
+solve :: (Int, Int) -> V.Vector C.ByteString -> U.Vector Int
+solve (h, w) bss = dyna phi psi (h-1)
+  where
+    psi 0 = NonEmptyListF (bss V.! 0) Nothing
+    psi i = NonEmptyListF (bss V.! i) (Just (i-1))
 
-    back 1 (NonEmptyListF _ (Just t)) = extract t
-    back i (NonEmptyListF _ (Just t)) = back (i-1) (sub t)
+    phi (NonEmptyListF bs Nothing) = line0 bs
+    phi (NonEmptyListF bs (Just t)) = lineI (extract t) bs
