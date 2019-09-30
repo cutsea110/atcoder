@@ -1,0 +1,4 @@
+$ cabal clean
+$ cabal configure --enable-library-profiling
+$ cabal build -- ghc-options: -rtsopts -prof in atcoder.cabal
+$ ./dist-newstyle/build/x86_64-linux/ghc-8.6.5/atcoder-0.1.0.0/x/atcoder/build/atcoder/atcoder +RTS -s -p < DP/lcs-sample.txt
