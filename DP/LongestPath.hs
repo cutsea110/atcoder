@@ -171,27 +171,33 @@ node' f a xs = Cf (In (Hisx (f (map extract xs), Node a (map unCf xs))))
 ex1 :: (Int, [Int])
 ex1 = extract top
   where
-    top = node' maximum 0 [nd1,nd2,nd3,nd4]
-    nd1 = tip' (0,[1]) 1
-    nd3 = node' (((+1) *** (3:)).maximum) 3 [nd1]
-    nd2 = node' (((+1) *** (2:)).maximum) 2 [nd1,nd3]
-    nd4 = node' (((+1) *** (4:)).maximum) 4 [nd2,nd3]
+    top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4]
+    mkT i = tip' (0,[i]) i
+    mkN i = node' (((+1) *** (i:)).maximum) i
+    nd1 = mkT 1
+    nd3 = mkN 3 [nd1]
+    nd2 = mkN 2 [nd1,nd3]
+    nd4 = mkN 4 [nd2,nd3]
 
 ex2 = extract top
   where
-    top = node' maximum 0 [nd1,nd2,nd3,nd4,nd5,nd6]
-    nd1 = tip' (0,[1]) 1
-    nd2 = tip' (0,[2]) 2
-    nd3 = node' (((+1) *** (3:)).maximum) 3 [nd2]
-    nd4 = tip' (0,[4]) 4
-    nd5 = node' (((+1) *** (5:)).maximum) 5 [nd4]
-    nd6 = node' (((+1) *** (6:)).maximum) 6 [nd5]
+    top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5,nd6]
+    mkT i = tip' (0,[i]) i
+    mkN i = node' (((+1) *** (i:)).maximum) i
+    nd1 = mkT 1
+    nd2 = mkT 2
+    nd3 = mkN 3 [nd2]
+    nd4 = mkT 4
+    nd5 = mkN 5 [nd4]
+    nd6 = mkN 6 [nd5]
 
 ex3 = extract top
   where
-    top = node' maximum 0 [nd1,nd2,nd3,nd4,nd5]
-    nd5 = tip' (0,[5]) 5
-    nd1 = node' (((+1) *** (1:)).maximum) 1 [nd5]
-    nd2 = node' (((+1) *** (2:)).maximum) 2 [nd5]
-    nd4 = node' (((+1) *** (4:)).maximum) 4 [nd1,nd2]
-    nd3 = node' (((+1) *** (3:)).maximum) 3 [nd1,nd2,nd4,nd5]
+    top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5]
+    mkT i = tip' (0,[i]) i
+    mkN i = node' (((+1) *** (i:)).maximum) i
+    nd5 = mkT 5
+    nd1 = mkN 1 [nd5]
+    nd2 = mkN 2 [nd5]
+    nd4 = mkN 4 [nd1,nd2]
+    nd3 = mkN 3 [nd1,nd2,nd4,nd5]
