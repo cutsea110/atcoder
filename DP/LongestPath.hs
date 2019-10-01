@@ -169,7 +169,7 @@ main = do
   (n, m, xys) <- getProblem
   print . fst . extract $ solve n xys
 
-
+solve :: Vertex -> U.Vector Edge -> Cofree (TreeF Vertex) (Int, [Vertex])
 solve n xys = node' (second reverse.maximum) 0 (Map.elems m)
   where
     mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
@@ -179,12 +179,11 @@ solve n xys = node' (second reverse.maximum) 0 (Map.elems m)
 
     g = buildG (1,n) $ U.toList xys
     sorted = topSort g
-    entry i m =
-      let xs = g ! i
-      in if null xs
-         then Map.insert i (mkT i) m
-         else Map.insert i (mkN i (map (m Map.!) xs)) m
+    entry i m | null xs = Map.insert i (mkT i) m
+              | otherwise = Map.insert i (mkN i (map (m Map.!) xs)) m
+      where xs = g ! i
     m = foldr entry Map.empty sorted
+
 {--
 ex1 :: (Int, [Int])
 ex1 = extract top
