@@ -169,7 +169,7 @@ main = do
   (n, m, xys) <- getProblem
   print . fst . extract $ solve n xys
 
-solve :: Vertex -> U.Vector Edge -> Cofree (TreeF Vertex) (Int, [Vertex])
+solve :: Int -> U.Vector Edge -> Cofree (TreeF Vertex) (Int, [Vertex])
 solve n xys = node' (second reverse.maximum) 0 (Map.elems m)
   where
     mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
@@ -179,15 +179,33 @@ solve n xys = node' (second reverse.maximum) 0 (Map.elems m)
 
     g = buildG (1,n) $ U.toList xys
     sorted = topSort g
+    m = foldr entry Map.empty sorted
     entry i m | null xs = Map.insert i (mkT i) m
               | otherwise = Map.insert i (mkN i (map (m Map.!) xs)) m
       where xs = g ! i
-    m = foldr entry Map.empty sorted
 
-{--
-ex1 :: (Int, [Int])
-ex1 = extract top
+-- [FIXME] this break nexas construction!
+solve' :: Int -> U.Vector Edge -> (Int, [Vertex])
+solve' n xys = dyna phi psi (0, starts)
   where
+    starts :: [Vertex]
+    starts = let (ss, es) = unzip (U.toList xys) in Set.toList $ (Set.fromList ss) Set.\\ (Set.fromList es)
+    g = buildG (1,n) $ U.toList xys
+    m = Map.fromList $ map (id &&& (g !)) [1..n]
+
+    psi :: (Vertex, [Vertex]) -> TreeF Vertex (Vertex, [Vertex])
+    psi (n, []) = Tip n
+    psi (n, xs) = Node n (map (id &&& (m Map.!)) xs)
+    
+    phi :: TreeF Vertex (Cofree (TreeF Vertex) (Int, [Vertex])) -> (Int, [Vertex])
+    phi (Tip n) = (0, [n])
+    phi (Node n ts) = ((+1) *** (n:)) $ maximum $ map extract ts
+
+{-
+-- ex1 :: (Int, [Int])
+ex1 = [nd1, nd2, nd3, nd4] -- extract top
+  where
+    top :: Cofree (TreeF Vertex) (Int, [Vertex])
     top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4]
     mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
     mkT i = tip' (0,[i]) i
@@ -226,4 +244,4 @@ ex3 = extract top
     nd1 = mkN 1 [nd3,nd4]
     nd4 = mkN 4 [nd3]
     nd3 = mkT 3
---}
+-}
