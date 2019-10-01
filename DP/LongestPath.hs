@@ -144,7 +144,7 @@ getIdxTuple = cross (pred, pred) <$> getTuple
 getProblem :: IO (Int, Int, U.Vector Edge)
 getProblem = do
   (n, m) <- getTuple
-  xys <- U.replicateM m getIdxTuple
+  xys <- U.replicateM m getTuple
   return (n, m, xys)
 
 main :: IO ()
@@ -179,25 +179,27 @@ ex1 = extract top
     nd2 = mkN 2 [nd1,nd3]
     nd4 = mkN 4 [nd2,nd3]
 
+ex2 :: (Int, [Int])
 ex2 = extract top
   where
     top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5,nd6]
     mkT i = tip' (0,[i]) i
     mkN i = node' (((+1) *** (i:)).maximum) i
-    nd1 = mkT 1
-    nd2 = mkT 2
-    nd3 = mkN 3 [nd2]
     nd4 = mkT 4
     nd5 = mkN 5 [nd4]
     nd6 = mkN 6 [nd5]
+    nd2 = mkT 2
+    nd3 = mkN 3 [nd2]
+    nd1 = mkT 1
 
+ex3 :: (Int, [Int])
 ex3 = extract top
   where
     top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5]
     mkT i = tip' (0,[i]) i
     mkN i = node' (((+1) *** (i:)).maximum) i
     nd5 = mkT 5
-    nd1 = mkN 1 [nd5]
     nd2 = mkN 2 [nd5]
+    nd1 = mkN 1 [nd5]
     nd4 = mkN 4 [nd1,nd2]
     nd3 = mkN 3 [nd1,nd2,nd4,nd5]
