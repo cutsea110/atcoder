@@ -172,7 +172,9 @@ ex1 :: (Int, [Int])
 ex1 = extract top
   where
     top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4]
+    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
     mkT i = tip' (0,[i]) i
+    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
     mkN i = node' (((+1) *** (i:)).maximum) i
     nd1 = mkT 1
     nd3 = mkN 3 [nd1]
@@ -183,7 +185,9 @@ ex2 :: (Int, [Int])
 ex2 = extract top
   where
     top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5,nd6]
+    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
     mkT i = tip' (0,[i]) i
+    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
     mkN i = node' (((+1) *** (i:)).maximum) i
     nd4 = mkT 4
     nd5 = mkN 5 [nd4]
@@ -196,7 +200,9 @@ ex3 :: (Int, [Int])
 ex3 = extract top
   where
     top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5]
+    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
     mkT i = tip' (0,[i]) i
+    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
     mkN i = node' (((+1) *** (i:)).maximum) i
     nd5 = mkT 5
     nd2 = mkN 2 [nd5]
