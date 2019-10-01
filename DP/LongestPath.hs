@@ -139,9 +139,6 @@ getTuple = do
   (x:y:_) <- getInts
   return (x, y)
 
-getIdxTuple :: IO Edge
-getIdxTuple = cross (pred, pred) <$> getTuple
-
 getProblem :: IO (Int, Int, U.Vector Edge)
 getProblem = do
   (n, m) <- getTuple
