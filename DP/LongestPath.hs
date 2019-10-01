@@ -146,66 +146,50 @@ getProblem = do
   xys <- U.replicateM m getIdxTuple
   return (n, m, xys)
 
-data NonEmptyListF a = NonEmptyListF (Vertex, [Vertex], [Int]) (Maybe a) deriving (Show, Functor)
-
-targets :: Int -> U.Vector Edge -> V.Vector [Vertex]
-targets n es = V.create $ do
-  vec <- VM.replicate n []
-  U.forM_ es $ \(s, t) -> do
-    VM.modify vec (t:) s
-  return vec
-
-transposition :: Map.Map Vertex Int -> Vertex -> Vertex -> Int
-transposition dict !s !e = (dict Map.! e) - (dict Map.! s)
-
-transpositions :: Map.Map Vertex Int -> Vertex -> [Vertex] -> [Int]
-transpositions dict !v !vs = map (transposition dict v) vs
-
-compileWith :: Map.Map Vertex Int -> V.Vector [Vertex] -> U.Vector Vertex -> V.Vector [Int]
-compileWith dict ds vs = V.create $ do
-  vec <- VM.replicate (U.length vs) []
-  U.forM_ vs $ \s -> do
-    VM.write vec (dict Map.! s) $! transpositions dict s (ds V.! s)
-  return vec
-
-calcStart :: U.Vector (Vertex, Vertex) -> Int -> [Vertex]
-calcStart xys n = filter (\k -> Map.notMember k me) [0..n]
-  where
-    !me = U.foldl' (\me' (_, v) -> bool me' (Map.insert v True me') (Map.notMember v me')) Map.empty xys
-
 main :: IO ()
 main = do
-  (!n, !m, !xys) <- getProblem
-  print $ solve n xys
+  (n, m, xys) <- getProblem
+  print (n, m, xys)
 
-solve :: Int -> U.Vector Edge -> Int
-solve n xys = dyna phi psi n'
+data TreeF a x = Tip a | Node a [x] deriving (Show, Functor)
+type Tree a = Fix (TreeF a)
+instance Show a => Show (Tree a) where
+  show (In (Tip x)) = "Tip " ++ show x
+  show (In (Node a xs)) = "Node " ++ show a ++ " " ++ show xs
+
+tip :: a -> Tree a
+tip a = In (Tip a)
+node :: a -> [Tree a] -> Tree a
+node a xs = In (Node a xs)
+
+tip' :: b -> a -> Cofree (TreeF a) b
+tip' c n = Cf (In (Hisx (c, Tip n)))
+node' :: ([a] -> a) -> b -> [Cofree (TreeF b) a] -> Cofree (TreeF b) a
+node' f a xs = Cf (In (Hisx (f (map extract xs), Node a (map unCf xs))))
+
+ex1 = extract top
   where
-    !n' = n-1
-    vs :: U.Vector Vertex
-    !vs = U.fromList . topSort . buildG (0, n') . U.toList $ xys
-    ds :: V.Vector [Vertex]
-    ds = targets n xys
-    dict :: Map.Map Vertex Int
-    !dict = Map.fromList . U.toList . U.map swap . U.indexed $ vs
-    ds' :: V.Vector [Int]
-    ds' = compileWith dict ds vs
-    startlist :: [Int]
-    !startlist = sort $ delete 0 $ transpositions dict (vs U.! 0) $! calcStart xys n'
-    
-    psi 0 = NonEmptyListF (vs U.! n', sort $ ds' V.! n', []) Nothing
-    psi i = NonEmptyListF (vs U.! (n'-i), sort $ ds' V.! (n'-i), bool [] startlist (i == n')) (Just (i-1))
+    top = node' maximum 0 [nd1,nd2,nd3,nd4]
+    nd1 = tip' 0 1
+    nd3 = node' ((+1).maximum) 3 [nd1]
+    nd2 = node' ((+1).maximum) 2 [nd1,nd3]
+    nd4 = node' ((+1).maximum) 4 [nd2,nd3]
 
-    phi :: NonEmptyListF (Cofree NonEmptyListF Int) -> Int
-    phi (NonEmptyListF _ Nothing) = 0
-    phi prev@(NonEmptyListF (_, bps, ss) (Just t))
-      | null bps = back 0 1 ss prev
-      | otherwise = max (back 0 1 bps prev + 1) (back 0 1 ss prev)
+ex2 = extract top
+  where
+    top = node' maximum 0 [nd1,nd2,nd3,nd4,nd5,nd6]
+    nd1 = tip' 0 1
+    nd2 = tip' 0 2
+    nd3 = node' ((+1).maximum) 3 [nd2]
+    nd4 = tip' 0 4
+    nd5 = node' ((+1).maximum) 5 [nd4]
+    nd6 = node' ((+1).maximum) 6 [nd5]
 
-
-    back :: Int -> Int -> [Int] -> NonEmptyListF (Cofree NonEmptyListF Int) -> Int
-    back ret i [] _ = ret
-    back ret i _ (NonEmptyListF _ Nothing) = ret
-    back ret i bps@(j:js) nel@(NonEmptyListF _ (Just t))
-      | i == j = let !ret' = max ret (extract t) in back ret' (i+1) js (sub t)
-      | otherwise = back ret (i+1) bps (sub t)
+ex3 = extract top
+  where
+    top = node' maximum 0 [nd1,nd2,nd3,nd4,nd5]
+    nd5 = tip' 0 5
+    nd1 = node' ((+1).maximum) 1 [nd5]
+    nd2 = node' ((+1).maximum) 2 [nd5]
+    nd4 = node' ((+1).maximum) 4 [nd1,nd2]
+    nd3 = node' ((+1).maximum) 3 [nd1,nd2,nd4,nd5]
