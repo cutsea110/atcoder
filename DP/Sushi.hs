@@ -7,13 +7,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
-import Control.Arrow ((***), (&&&), first, second)
 import Control.Monad (replicateM, forM_)
-import Data.Array ((!))
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
-import Data.Graph (Graph, Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl', sort, (\\), delete)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -134,113 +131,13 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
-getTuple :: IO Edge
-getTuple = do
-  (x:y:_) <- getInts
-  return (x, y)
-
-getProblem :: IO (Int, Int, U.Vector Edge)
+getProblem :: IO (Int, U.Vector Int)
 getProblem = do
-  (n, m) <- getTuple
-  xys <- U.replicateM m getTuple
-  return (n, m, xys)
-
-data TreeF a x = Tip a | Node a [x] deriving (Show, Functor)
-type Tree a = Fix (TreeF a)
-instance Show a => Show (Tree a) where
-  show (In (Tip x)) = "Tip " ++ show x
-  show (In (Node a xs)) = "Node " ++ show a ++ " " ++ show xs
-
-tip :: a -> Tree a
-tip a = In (Tip a)
-node :: a -> [Tree a] -> Tree a
-node a xs = In (Node a xs)
-
-tip' :: b -> a -> Cofree (TreeF a) b
-tip' c n = Cf (In (Hisx (c, Tip n)))
-node' :: ([a] -> a) -> b -> [Cofree (TreeF b) a] -> Cofree (TreeF b) a
-node' f a xs = Cf (In (Hisx (f (map extract xs), Node a (map unCf xs))))
+  n <- readLn :: IO Int
+  xs <-  getIntVec n
+  return (n, xs)
 
 main :: IO ()
 main = do
-  (n, m, xys) <- getProblem
-  print . fst . extract $ solve n xys
-
-solve :: Int -> U.Vector Edge -> Cofree (TreeF Vertex) (Int, [Vertex])
-solve n xys = node' (second reverse.maximum) 0 (Map.elems m)
-  where
-    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkT i = tip' (0,[i]) i
-    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkN i = node' (((+1) *** (i:)).maximum) i
-
-    g = buildG (1,n) $ U.toList xys
-    sorted = topSort g
-    m = foldr entry Map.empty sorted
-    entry i m | null xs = Map.insert i (mkT i) m
-              | otherwise = Map.insert i (mkN i (map (m Map.!) xs)) m
-      where xs = g ! i
-
--- [FIXME] this break nexas construction!
-solve' :: Int -> U.Vector Edge -> (Int, [Vertex])
-solve' n xys = dyna phi psi (0, starts)
-  where
-    starts :: [Vertex]
-    starts = let (ss, es) = unzip (U.toList xys) in Set.toList $ (Set.fromList ss) Set.\\ (Set.fromList es)
-    g :: Graph
-    g = buildG (1,n) $ U.toList xys
-    m :: Map.Map Vertex [Vertex]
-    m = Map.fromList $ map (id &&& (g !)) [1..n]
-
-    psi :: (Vertex, [Vertex]) -> TreeF Vertex (Vertex, [Vertex])
-    psi (n, []) = Tip n
-    psi (n, xs) = Node n (map (id &&& (m Map.!)) xs)
-    
-    phi :: TreeF Vertex (Cofree (TreeF Vertex) (Int, [Vertex])) -> (Int, [Vertex])
-    phi (Tip n) = (0, [n])
-    phi (Node n ts) = ((+1) *** (n:)) $ maximum $ map extract ts
-
-{-
--- ex1 :: (Int, [Int])
-ex1 = [nd1, nd2, nd3, nd4] -- extract top
-  where
-    top :: Cofree (TreeF Vertex) (Int, [Vertex])
-    top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4]
-    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkT i = tip' (0,[i]) i
-    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkN i = node' (((+1) *** (i:)).maximum) i
-    nd1 = mkN 1 [nd3,nd2]
-    nd3 = mkN 3 [nd4,nd2]
-    nd2 = mkN 2 [nd4]
-    nd4 = mkT 4
-
-ex2 :: (Int, [Int])
-ex2 = extract top
-  where
-    top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5,nd6]
-    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkT i = tip' (0,[i]) i
-    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkN i = node' (((+1) *** (i:)).maximum) i
-    nd4 = mkN 4 [nd5]
-    nd5 = mkN 5 [nd6]
-    nd6 = mkT 6
-    nd2 = mkN 2 [nd3]
-    nd3 = mkT 3
-    nd1 = mkT 1
-
-ex3 :: (Int, [Int])
-ex3 = extract top
-  where
-    top = node' (second reverse.maximum) 0 [nd1,nd2,nd3,nd4,nd5]
-    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkT i = tip' (0,[i]) i
-    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
-    mkN i = node' (((+1) *** (i:)).maximum) i
-    nd5 = mkN 5 [nd1,nd2,nd3]
-    nd2 = mkN 2 [nd4,nd3]
-    nd1 = mkN 1 [nd3,nd4]
-    nd4 = mkN 4 [nd3]
-    nd3 = mkT 3
--}
+  (n, xys) <- getProblem
+  print (n, xys)

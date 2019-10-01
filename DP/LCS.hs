@@ -135,7 +135,8 @@ solve :: C.ByteString -> C.ByteString -> V.Vector (U.Vector (Char, Int))
 solve !cs !rs = dyna phi psi (rlen-1)
   where
     (!clen, !rlen) = (C.length cs, C.length rs)
-    
+
+    psi :: Int -> NonEmptyListF Int
     psi 0 = NonEmptyListF (rs `C.index` 0) Nothing
     psi i = NonEmptyListF (rs `C.index` i) (Just (i-1))
 
