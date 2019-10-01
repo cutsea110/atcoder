@@ -9,6 +9,7 @@ module Main where
 
 import Control.Arrow ((***), (&&&), first, second)
 import Control.Monad (replicateM, forM_)
+import Data.Array ((!))
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
@@ -147,11 +148,6 @@ getProblem = do
   xys <- U.replicateM m getTuple
   return (n, m, xys)
 
-main :: IO ()
-main = do
-  (n, m, xys) <- getProblem
-  print (n, m, xys)
-
 data TreeF a x = Tip a | Node a [x] deriving (Show, Functor)
 type Tree a = Fix (TreeF a)
 instance Show a => Show (Tree a) where
@@ -168,6 +164,28 @@ tip' c n = Cf (In (Hisx (c, Tip n)))
 node' :: ([a] -> a) -> b -> [Cofree (TreeF b) a] -> Cofree (TreeF b) a
 node' f a xs = Cf (In (Hisx (f (map extract xs), Node a (map unCf xs))))
 
+main :: IO ()
+main = do
+  (n, m, xys) <- getProblem
+  print . fst . extract $ solve n xys
+
+
+solve n xys = node' (second reverse.maximum) 0 (Map.elems m)
+  where
+    mkT :: Vertex -> Cofree (TreeF Vertex) (Int, [Vertex])
+    mkT i = tip' (0,[i]) i
+    mkN :: Vertex -> [Cofree (TreeF Vertex) (Int, [Vertex])] -> Cofree (TreeF Vertex) (Int, [Vertex])
+    mkN i = node' (((+1) *** (i:)).maximum) i
+
+    g = buildG (1,n) $ U.toList xys
+    sorted = topSort g
+    entry i m =
+      let xs = g ! i
+      in if null xs
+         then Map.insert i (mkT i) m
+         else Map.insert i (mkN i (map (m Map.!) xs)) m
+    m = foldr entry Map.empty sorted
+{--
 ex1 :: (Int, [Int])
 ex1 = extract top
   where
@@ -209,3 +227,4 @@ ex3 = extract top
     nd1 = mkN 1 [nd3,nd4]
     nd4 = mkN 4 [nd3]
     nd3 = mkT 3
+--}
