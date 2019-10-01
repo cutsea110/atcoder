@@ -13,7 +13,7 @@ import Data.Array ((!))
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
-import Data.Graph (Vertex, Edge, buildG, topSort)
+import Data.Graph (Graph, Vertex, Edge, buildG, topSort)
 import Data.List (unfoldr, foldl', sort, (\\), delete)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -190,7 +190,9 @@ solve' n xys = dyna phi psi (0, starts)
   where
     starts :: [Vertex]
     starts = let (ss, es) = unzip (U.toList xys) in Set.toList $ (Set.fromList ss) Set.\\ (Set.fromList es)
+    g :: Graph
     g = buildG (1,n) $ U.toList xys
+    m :: Map.Map Vertex [Vertex]
     m = Map.fromList $ map (id &&& (g !)) [1..n]
 
     psi :: (Vertex, [Vertex]) -> TreeF Vertex (Vertex, [Vertex])
