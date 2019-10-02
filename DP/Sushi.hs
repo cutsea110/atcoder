@@ -137,6 +137,19 @@ getProblem = do
   xs <-  getIntVec n
   return (n, xs)
 
+type Plate = (Int, Int, Int)
+
+data TreeF a x = Node a (x, x, x) deriving (Show, Functor)
+type Tree a = Fix (TreeF a)
+instance Show a => Show (Tree a) where
+  show (In (Node a ns)) = "Node " ++ show a ++ " " ++ show ns
+
+node :: a -> (Tree a, Tree a, Tree a) -> Tree a
+node a xs = In (Node a xs)
+
+node' :: ((a, a, a) -> a) -> b -> (Cofree (TreeF b) a, Cofree (TreeF b) a, Cofree (TreeF b) a) -> Cofree (TreeF b) a
+node' f a (n1, n2, n3) = Cf (In (Hisx (f (extract n1, extract n2, extract n3), Node a (unCf n1, unCf n2, unCf n3))))
+
 main :: IO ()
 main = do
   (n, xys) <- getProblem
