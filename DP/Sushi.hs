@@ -144,6 +144,15 @@ type Tree a = Fix (TreeF a)
 instance Show a => Show (Tree a) where
   show (In (Node a ns)) = "Node " ++ show a ++ " " ++ show ns
 
+collect :: U.Vector Int -> (Int, Int, Int)
+collect = U.foldl' f (0,0,0)
+  where
+    f (n1,n2,n3) x = case x of
+      1 -> (n1+1, n2, n3)
+      2 -> (n1, n2+1, n3)
+      3 -> (n1, n2, n3+1)
+      _ -> error "illegal number"
+
 node :: a -> (Tree a, Tree a, Tree a) -> Tree a
 node a xs = In (Node a xs)
 
@@ -154,3 +163,4 @@ main :: IO ()
 main = do
   (n, xys) <- getProblem
   print (n, xys)
+
