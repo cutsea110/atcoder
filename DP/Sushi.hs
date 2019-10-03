@@ -137,8 +137,6 @@ getProblem = do
   xs <-  getIntVec n
   return (n, xs)
 
-type Plate = (Int, Int, Int)
-
 data TreeF a x = Node a (x, x, x) deriving (Show, Functor)
 type Tree a = Fix (TreeF a)
 instance Show a => Show (Tree a) where
