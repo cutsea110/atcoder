@@ -161,6 +161,25 @@ node' f a (n1, n2, n3) = Cf (In (Hisx (f (fmap extract n1, fmap extract n2, fmap
 main :: IO ()
 main = do
   (n, xys) <- getProblem
-  print (n, xys)
+  print $ solve n xys
 
-solve n xys = undefined
+solve n xys = dyna phi psi (collect xys)
+  where
+    psi :: (Int, Int, Int) -> TreeF (Int, (Int, Int, Int)) (Int, Int, Int)
+    psi ijk@(i, j, k) = Node (n, ijk) (next1 (i, j, k), next2 (i, j, k), next3 (i, j, k))
+      where
+        next1 (i, j, k) | i <= 0 = Nothing
+                        | otherwise = Just (i-1, j, k)
+        next2 (i, j, k) | j <= 0 = Nothing
+                        | otherwise = Just (i+1, j-1, k)
+        next3 (i, j, k) | k <= 0 = Nothing
+                        | otherwise = Just (i, j+1, k-1)
+
+    phi (Node (n, ijk) (Nothing, Nothing, Nothing)) = [ijk]
+    phi (Node (n, ijk) (Just t1, Nothing, Nothing)) = ijk:extract t1
+    phi (Node (n, ijk) (Nothing, Just t2, Nothing)) = ijk:extract t2
+    phi (Node (n, ijk) (Nothing, Nothing, Just t3)) = ijk:extract t3
+    phi (Node (n, ijk) (Nothing, Just t2, Just t3)) = ijk:(extract t2 ++ extract t3)
+    phi (Node (n, ijk) (Just t1, Nothing, Just t3)) = ijk:(extract t1 ++ extract t3)
+    phi (Node (n, ijk) (Just t1, Just t2, Nothing)) = ijk:(extract t1 ++ extract t2)
+    phi (Node (n, ijk) (Just t1, Just t2, Just t3)) = ijk:(extract t1 ++ extract t2 ++ extract t3)
