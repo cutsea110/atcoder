@@ -137,10 +137,9 @@ getProblem = do
   xs <-  getIntVec n
   return (n, xs)
 
-data TreeF a x = Tip a | Node a (x, x, x) deriving (Show, Functor)
+data TreeF a x = Node a (Maybe x, Maybe x, Maybe x) deriving (Show, Functor)
 type Tree a = Fix (TreeF a)
 instance Show a => Show (Tree a) where
-  show (In (Tip a)) = "Tip " ++ show a
   show (In (Node a ns)) = "Node " ++ show a ++ " " ++ show ns
 
 collect :: U.Vector Int -> (Int, Int, Int)
@@ -152,18 +151,16 @@ collect = U.foldl' f (0,0,0)
       3 -> (n1, n2, n3+1)
       _ -> error "illegal number"
 
-tip :: a -> Tree a
-tip a = In (Tip a)
-node :: a -> (Tree a, Tree a, Tree a) -> Tree a
+node :: a -> (Maybe (Tree a), Maybe (Tree a), Maybe (Tree a)) -> Tree a
 node a xs = In (Node a xs)
 
-tip' :: b -> a -> Cofree (TreeF a) b
-tip' c n = Cf (In (Hisx (c, Tip n)))
-node' :: ((a, a, a) -> a) -> b -> (Cofree (TreeF b) a, Cofree (TreeF b) a, Cofree (TreeF b) a) -> Cofree (TreeF b) a
-node' f a (n1, n2, n3) = Cf (In (Hisx (f (extract n1, extract n2, extract n3), Node a (unCf n1, unCf n2, unCf n3))))
+node' :: ((Maybe a, Maybe a, Maybe a) -> a) -> b ->
+         (Maybe (Cofree (TreeF b) a), Maybe (Cofree (TreeF b) a), Maybe (Cofree (TreeF b) a)) -> Cofree (TreeF b) a
+node' f a (n1, n2, n3) = Cf (In (Hisx (f (fmap extract n1, fmap extract n2, fmap extract n3), Node a (fmap unCf n1, fmap unCf n2, fmap unCf n3))))
 
 main :: IO ()
 main = do
   (n, xys) <- getProblem
   print (n, xys)
 
+solve n xys = undefined
