@@ -163,6 +163,7 @@ main = do
   (n, xys) <- getProblem
   print $ solve n xys
 
+solve :: Int -> U.Vector Int -> Double
 solve n xys = dyna phi psi (collect xys)
   where
     psi :: (Int, Int, Int) -> TreeF (Int, (Int, Int, Int)) (Int, Int, Int)
