@@ -175,11 +175,18 @@ solve n xys = dyna phi psi (collect xys)
         next3 (i, j, k) | k <= 0 = Nothing
                         | otherwise = Just (i, j+1, k-1)
 
-    phi (Node (n, ijk) (Nothing, Nothing, Nothing)) = [ijk]
-    phi (Node (n, ijk) (Just t1, Nothing, Nothing)) = ijk:extract t1
-    phi (Node (n, ijk) (Nothing, Just t2, Nothing)) = ijk:extract t2
-    phi (Node (n, ijk) (Nothing, Nothing, Just t3)) = ijk:extract t3
-    phi (Node (n, ijk) (Nothing, Just t2, Just t3)) = ijk:(extract t2 ++ extract t3)
-    phi (Node (n, ijk) (Just t1, Nothing, Just t3)) = ijk:(extract t1 ++ extract t3)
-    phi (Node (n, ijk) (Just t1, Just t2, Nothing)) = ijk:(extract t1 ++ extract t2)
-    phi (Node (n, ijk) (Just t1, Just t2, Just t3)) = ijk:(extract t1 ++ extract t2 ++ extract t3)
+    phi (Node _ (Nothing, Nothing, Nothing)) = 0.0
+    phi (Node (n, (i,j,k)) (Just t1, Nothing, Nothing)) =
+      (extract t1*fromIntegral i+fromIntegral n) / fromIntegral (i+j+k)
+    phi (Node (n, (i,j,k)) (Nothing, Just t2, Nothing)) =
+      (extract t2*fromIntegral j+fromIntegral n) / fromIntegral (i+j+k)
+    phi (Node (n, (i,j,k)) (Nothing, Nothing, Just t3)) =
+      (extract t3*fromIntegral k+fromIntegral n) / fromIntegral (i+j+k)
+    phi (Node (n, (i,j,k)) (Nothing, Just t2, Just t3)) =
+      (extract t2*fromIntegral j+extract t3*fromIntegral k+fromIntegral n) / fromIntegral (i+j+k)
+    phi (Node (n, (i,j,k)) (Just t1, Nothing, Just t3)) =
+      (extract t1*fromIntegral i+extract t3*fromIntegral k+fromIntegral n) / fromIntegral (i+j+k)
+    phi (Node (n, (i,j,k)) (Just t1, Just t2, Nothing)) =
+      (extract t1*fromIntegral i+extract t2*fromIntegral j+fromIntegral n) / fromIntegral (i+j+k)
+    phi (Node (n, (i,j,k)) (Just t1, Just t2, Just t3)) =
+      (extract t1*fromIntegral i+extract t2*fromIntegral j+extract t3*fromIntegral k+fromIntegral n) / fromIntegral (i+j+k)
