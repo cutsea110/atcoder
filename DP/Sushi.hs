@@ -194,7 +194,15 @@ solve n xys = dyna phi psi (collect xys)
 
 -- 1 1 1 => 3 0 0
 example1 = undefined
-
+  where
+    f n (i, j, k) (mt1, mt2, mt3) = let (x1, x2, x3) = ( maybe 0.0 (\t1 -> extract t1 * fromIntegral i) mt1
+                                                       , maybe 0.0 (\t2 -> extract t2 * fromIntegral j) mt2
+                                                       , maybe 0.0 (\t3 -> extract t3 * fromIntegral k) mt3)
+                                    in (x1 + x2 + x3 + fromIntegral n) / fromIntegral (i + j + k)
+    nd300 = node' undefined (3, 0, 0) (Just nd200, Nothing, Nothing)
+    nd200 = node' undefined (2, 0, 0) (Just nd100, Nothing, Nothing)
+    nd100 = node' undefined (1, 0, 0) (Just nd000, Nothing, Nothing)
+    nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
 
 -- 3 => 0 0 1
 example2 = undefined
