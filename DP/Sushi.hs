@@ -191,3 +191,16 @@ solve n xys = dyna phi psi (collect xys)
       (extract t1*fromIntegral i+extract t2*fromIntegral j+fromIntegral n) / fromIntegral (i+j+k)
     phi (Node (n, (i,j,k)) (Just t1, Just t2, Just t3)) =
       (extract t1*fromIntegral i+extract t2*fromIntegral j+extract t3*fromIntegral k+fromIntegral n) / fromIntegral (i+j+k)
+
+-- 1 1 1 => 3 0 0
+example1 = undefined
+
+
+-- 3 => 0 0 1
+example2 = undefined
+
+-- 1 2 => 1 1 0
+example3 = undefined
+
+-- 1 3 2 3 3 2 3 2 1 3 => 2 3 5
+example4 = undefined
