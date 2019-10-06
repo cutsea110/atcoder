@@ -204,7 +204,15 @@ example1 = extract nd300
     nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
 
 -- 3 => 0 0 1
-example2 = undefined
+example2 :: Double
+example2 = extract nd001
+  where
+    conv i = maybe 0.0 (* fromIntegral i)
+    f n (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
+    nd001 = node' (f 1 (0, 0, 1)) (0, 0, 1) (Nothing, Nothing, Just nd010)
+    nd010 = node' (f 1 (0, 1, 0)) (0, 1, 0) (Nothing, Just nd100, Nothing)
+    nd100 = node' (f 1 (1, 0, 0)) (1, 0, 0) (Just nd000, Nothing, Nothing)
+    nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
 
 -- 1 2 => 1 1 0
 example3 = undefined
