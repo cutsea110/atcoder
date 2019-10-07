@@ -226,6 +226,7 @@ example3 = extract nd110
     nd100 = node' (f 2 (1, 0, 0)) (1, 0, 0) (Just nd000, Nothing, Nothing)
     nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
 
+-- 1 1 1
 sample111 :: Double
 sample111 = extract nd111
   where
@@ -248,3 +249,17 @@ sample111 = extract nd111
 
 -- 1 3 2 3 3 2 3 2 1 3 => 2 3 5
 example4 = undefined
+  where
+    conv i = maybe 0.0 (* fromIntegral i)
+    f n (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
+
+
+entry n (0, 0, 0) m = Map.insert (0, 0, 0) (node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)) m
+entry n ijk@(i, j, k) m = Map.insert ijk (node' (f n ijk) ijk (nd1, nd2, nd3)) m
+  where
+    conv i = maybe 0.0 (* fromIntegral i)
+    f n (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
+
+    nd1  = if i == 0 then Nothing else Just (m Map.! (i-1, j, k))
+    nd2  = if j == 0 then Nothing else Just (m Map.! (i+1, j-1, k))
+    nd3  = if k == 0 then Nothing else Just (m Map.! (i, j+1, k-1))
