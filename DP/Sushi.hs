@@ -11,7 +11,7 @@ import Control.Monad (replicateM, forM_)
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
-import Data.List (unfoldr, foldl', sort, (\\), delete)
+import Data.List (unfoldr, foldl', sort, (\\), delete, nub)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as U
@@ -253,6 +253,21 @@ example4 = undefined
     conv i = maybe 0.0 (* fromIntegral i)
     f n (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
 
+mkSeq n xyz@(x, y, z) = ini:unfoldr psi ini
+  where
+    ini = [(0, 0, 0)]
+    psi xs | null xs' = Nothing
+           | otherwise = Just (xs', xs')
+      where
+        xs' = nub $ concatMap next xs
+    next (i, j, k)
+      | i == x && j == y && k == z = []
+      | otherwise = filter p [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
+      where
+        p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
+          where
+            (jk', ijk') = (j'+k', i'+jk')
+            (yz, xyz) = (y+z, x+yz)
 
 entry n (0, 0, 0) m = Map.insert (0, 0, 0) (node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)) m
 entry n ijk@(i, j, k) m = Map.insert ijk (node' (f n ijk) ijk (nd1, nd2, nd3)) m
