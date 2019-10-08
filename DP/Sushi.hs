@@ -161,7 +161,7 @@ node' f a (n1, n2, n3) = Cf (In (Hisx (f (fmap extract n1, fmap extract n2, fmap
 main :: IO ()
 main = do
   (n, xys) <- getProblem
-  print $ solve n xys
+  print $ solve' n (collect xys)
 
 solve :: Int -> U.Vector Int -> Double
 solve n xys = dyna phi psi (collect xys)
@@ -249,11 +249,21 @@ sample111 = extract nd111
 
 -- 1 3 2 3 3 2 3 2 1 3 => 2 3 5
 example4 = undefined
+
+solve' :: Int -> (Int, Int, Int) -> Double
+solve' n ijk = extract (mkMap n (mkSeq n ijk) Map.! ijk)
+
+mkMap :: Int -> [(Int, Int, Int)] -> Map.Map (Int, Int, Int) (Cofree (TreeF (Int, Int, Int)) Double)
+mkMap n xs = foldl' p (Map.singleton (0, 0, 0) nd000) xs
   where
     conv i = maybe 0.0 (* fromIntegral i)
-    f n (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
+    f (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
+    nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
+    nd ijk@(i, j, k) m = node' (f ijk) ijk (Map.lookup (i-1, j, k) m, Map.lookup (i+1, j-1, k) m, Map.lookup (i, j+1, k-1) m)
+    p m key@(i, j, k) = Map.insert key (nd key m) m
 
-mkSeq n xyz@(x, y, z) = ini:unfoldr psi ini
+mkSeq :: (Ord a, Num a) => a -> (a, a, a) -> [(a, a, a)]
+mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
   where
     ini = [(0, 0, 0)]
     psi xs | null xs' = Nothing
@@ -268,13 +278,3 @@ mkSeq n xyz@(x, y, z) = ini:unfoldr psi ini
           where
             (jk', ijk') = (j'+k', i'+jk')
             (yz, xyz) = (y+z, x+yz)
-
-entry n (0, 0, 0) m = Map.insert (0, 0, 0) (node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)) m
-entry n ijk@(i, j, k) m = Map.insert ijk (node' (f n ijk) ijk (nd1, nd2, nd3)) m
-  where
-    conv i = maybe 0.0 (* fromIntegral i)
-    f n (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
-
-    nd1  = if i == 0 then Nothing else Just (m Map.! (i-1, j, k))
-    nd2  = if j == 0 then Nothing else Just (m Map.! (i+1, j-1, k))
-    nd3  = if k == 0 then Nothing else Just (m Map.! (i, j+1, k-1))
