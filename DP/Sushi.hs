@@ -161,8 +161,39 @@ node' f a (n1, n2, n3) = Cf (In (Hisx (f (fmap extract n1, fmap extract n2, fmap
 main :: IO ()
 main = do
   (n, xys) <- getProblem
-  print $ solve' n (collect xys)
+  print $ solve n (collect xys)
 
+
+solve :: Int -> (Int, Int, Int) -> Double
+solve n ijk = extract (mkMap n ijk Map.! ijk)
+
+mkMap :: Int -> (Int, Int, Int) -> Map.Map (Int, Int, Int) (Cofree (TreeF (Int, Int, Int)) Double)
+mkMap n ijk = foldl' p (Map.singleton (0, 0, 0) nd000) (mkSeq n ijk)
+  where
+    conv i = maybe 0.0 (* fromIntegral i)
+    f (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
+    nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
+    nd ijk@(i, j, k) m = node' (f ijk) ijk (Map.lookup (i-1, j, k) m, Map.lookup (i+1, j-1, k) m, Map.lookup (i, j+1, k-1) m)
+    p m key@(i, j, k) = Map.insert key (nd key m) m
+
+mkSeq :: (Ord a, Num a) => a -> (a, a, a) -> [(a, a, a)]
+mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
+  where
+    ini = [(0, 0, 0)]
+    psi xs | null xs' = Nothing
+           | otherwise = Just (xs', xs')
+      where
+        xs' = nub $ concatMap next xs
+    next (i, j, k)
+      | i == x && j == y && k == z = []
+      | otherwise = filter p [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
+      where
+        p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
+          where
+            (jk', ijk') = (j'+k', i'+jk')
+            (yz, xyz) = (y+z, x+yz)
+
+{--
 solve :: Int -> U.Vector Int -> Double
 solve n xys = dyna phi psi (collect xys)
   where
@@ -191,6 +222,7 @@ solve n xys = dyna phi psi (collect xys)
       (extract t1*fromIntegral i+extract t2*fromIntegral j+fromIntegral n) / fromIntegral (i+j+k)
     phi (Node (n, (i,j,k)) (Just t1, Just t2, Just t3)) =
       (extract t1*fromIntegral i+extract t2*fromIntegral j+extract t3*fromIntegral k+fromIntegral n) / fromIntegral (i+j+k)
+--}
 
 -- 1 1 1 => 3 0 0
 example1 :: Double
@@ -248,33 +280,5 @@ sample111 = extract nd111
     nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
 
 -- 1 3 2 3 3 2 3 2 1 3 => 2 3 5
-example4 = undefined
-
-solve' :: Int -> (Int, Int, Int) -> Double
-solve' n ijk = extract (mkMap n (mkSeq n ijk) Map.! ijk)
-
-mkMap :: Int -> [(Int, Int, Int)] -> Map.Map (Int, Int, Int) (Cofree (TreeF (Int, Int, Int)) Double)
-mkMap n xs = foldl' p (Map.singleton (0, 0, 0) nd000) xs
-  where
-    conv i = maybe 0.0 (* fromIntegral i)
-    f (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
-    nd000 = node' (const 0.0) (0, 0, 0) (Nothing, Nothing, Nothing)
-    nd ijk@(i, j, k) m = node' (f ijk) ijk (Map.lookup (i-1, j, k) m, Map.lookup (i+1, j-1, k) m, Map.lookup (i, j+1, k-1) m)
-    p m key@(i, j, k) = Map.insert key (nd key m) m
-
-mkSeq :: (Ord a, Num a) => a -> (a, a, a) -> [(a, a, a)]
-mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
-  where
-    ini = [(0, 0, 0)]
-    psi xs | null xs' = Nothing
-           | otherwise = Just (xs', xs')
-      where
-        xs' = nub $ concatMap next xs
-    next (i, j, k)
-      | i == x && j == y && k == z = []
-      | otherwise = filter p [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
-      where
-        p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
-          where
-            (jk', ijk') = (j'+k', i'+jk')
-            (yz, xyz) = (y+z, x+yz)
+example4 :: Double
+example4 = solve 10 (2, 3, 5)
