@@ -193,10 +193,26 @@ mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
             (jk', ijk') = (j'+k', i'+jk')
             (yz, xyz) = (y+z, x+yz)
 
-next' :: Int -> (Int, Int, Int) -> (Int, Int, Int) -> U.Vector (Int, Int, Int)
+mkSet n xyz@(x, y, z) = Set.unions $ unfoldr psi ini
+  where
+    ini = Set.fromList [(0, 0, 0)]
+    psi xs | Set.null xs' = Nothing
+           | otherwise = Just (xs', xs')
+      where
+        xs' = Set.unions $ Set.map next xs
+    next (i, j, k)
+      | i == x && j == y && k == z = Set.fromList []
+      | otherwise = Set.filter p $ Set.fromList [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
+      where
+        p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
+          where
+            (jk', ijk') = (j'+k', i'+jk')
+            (yz, xyz) = (y+z, x+yz)
+    
+next' :: Int -> (Int, Int, Int) -> (Int, Int, Int) -> Set.Set (Int, Int, Int)
 next' n (x, y, z) (i, j, k)
-  | i == x && j == y && k == z = U.empty
-  | otherwise = U.filter p $ U.fromList [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
+  | i == x && j == y && k == z = Set.empty
+  | otherwise = Set.filter p $ Set.fromList [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
   where
     p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
       where
