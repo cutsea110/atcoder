@@ -193,6 +193,16 @@ mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
             (jk', ijk') = (j'+k', i'+jk')
             (yz, xyz) = (y+z, x+yz)
 
+next' :: Int -> (Int, Int, Int) -> (Int, Int, Int) -> U.Vector (Int, Int, Int)
+next' n (x, y, z) (i, j, k)
+  | i == x && j == y && k == z = U.empty
+  | otherwise = U.filter p $ U.fromList [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
+  where
+    p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
+      where
+        (jk', ijk') = (j'+k', i'+jk')
+        (yz, xyz) = (y+z, x+yz)
+
 {--
 solve :: Int -> U.Vector Int -> Double
 solve n xys = dyna phi psi (collect xys)
