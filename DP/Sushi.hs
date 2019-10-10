@@ -176,7 +176,7 @@ mkMap n ijk = foldl' p (Map.singleton (0, 0, 0) nd000) (mkSeq n ijk)
     nd ijk@(i, j, k) m = node' (f ijk) ijk (Map.lookup (i-1, j, k) m, Map.lookup (i+1, j-1, k) m, Map.lookup (i, j+1, k-1) m)
     p m key@(i, j, k) = Map.insert key (nd key m) m
 
-mkSeq :: (Ord a, Num a) => a -> (a, a, a) -> [(a, a, a)]
+mkSeq :: Int -> (Int, Int, Int) -> [(Int, Int, Int)]
 mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
   where
     ini = [(0, 0, 0)]
@@ -192,7 +192,8 @@ mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
           where
             (jk', ijk') = (j'+k', i'+jk')
             (yz, xyz) = (y+z, x+yz)
-
+{-
+mkSet :: Int -> (Int, Int, Int) -> Set.Set (Int, Int, Int)
 mkSet n xyz@(x, y, z) = Set.unions $ unfoldr psi ini
   where
     ini = Set.fromList [(0, 0, 0)]
@@ -218,7 +219,7 @@ next' n (x, y, z) (i, j, k)
       where
         (jk', ijk') = (j'+k', i'+jk')
         (yz, xyz) = (y+z, x+yz)
-
+-}
 {--
 solve :: Int -> U.Vector Int -> Double
 solve n xys = dyna phi psi (collect xys)
