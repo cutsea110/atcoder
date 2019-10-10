@@ -11,6 +11,7 @@ import Control.Monad (replicateM, forM_)
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
+import qualified Data.Foldable as Foldable
 import Data.List (unfoldr, foldl', sort, (\\), delete, nub)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -168,7 +169,7 @@ solve :: Int -> (Int, Int, Int) -> Double
 solve n ijk = extract (mkMap n ijk Map.! ijk)
 
 mkMap :: Int -> (Int, Int, Int) -> Map.Map (Int, Int, Int) (Cofree (TreeF (Int, Int, Int)) Double)
-mkMap n ijk = foldl' p (Map.singleton (0, 0, 0) nd000) (mkSeq n ijk)
+mkMap n ijk = foldl' p (Map.singleton (0, 0, 0) nd000) (map snd $ Set.toList $ mkSet n ijk) -- (mkSeq n ijk)
   where
     conv i = maybe 0.0 (* fromIntegral i)
     f (i, j, k) (mt1, mt2, mt3) = (conv i mt1 + conv j mt2 + conv k mt3 + fromIntegral n) / fromIntegral (i + j + k)
@@ -192,20 +193,30 @@ mkSeq n xyz@(x, y, z) = concat $ unfoldr psi ini
           where
             (jk', ijk') = (j'+k', i'+jk')
             (yz, xyz) = (y+z, x+yz)
-{-
-mkSet :: Int -> (Int, Int, Int) -> Set.Set (Int, Int, Int)
+
+-- for GHC 7.10
+unions' :: (Foldable f, Ord a) => f (Set.Set a) -> Set.Set a
+unions' = Foldable.foldl' Set.union Set.empty
+{-# INLINABLE unions' #-}
+
+mkSet :: Int -> (Int, Int, Int) -> Set.Set (Int, (Int, Int, Int))
 mkSet n xyz@(x, y, z) = Set.unions $ unfoldr psi ini
   where
-    ini = Set.fromList [(0, 0, 0)]
+    ini :: Set.Set (Int, (Int, Int, Int))
+    ini = Set.fromList [(0, (0, 0, 0))]
+    psi :: Set.Set (Int, (Int, Int, Int)) -> Maybe (Set.Set (Int, (Int, Int, Int)), Set.Set (Int, (Int, Int, Int)))
     psi xs | Set.null xs' = Nothing
            | otherwise = Just (xs', xs')
       where
-        xs' = Set.unions $ Set.map next xs
-    next (i, j, k)
+        xs' :: Set.Set (Int, (Int, Int, Int))
+        xs' = unions' $ Set.map next xs
+    next :: (Int, (Int, Int, Int)) -> Set.Set (Int, (Int, Int, Int))
+    next (l, (i, j, k))
       | i == x && j == y && k == z = Set.fromList []
-      | otherwise = Set.filter p $ Set.fromList [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
+      | otherwise = Set.filter p $ Set.fromList [(l', (i+1, j, k)),(l', (i-1, j+1, k)),(l', (i, j-1, k+1))]
       where
-        p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
+        l' = l+1
+        p (_, (i', j', k')) = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
           where
             (jk', ijk') = (j'+k', i'+jk')
             (yz, xyz) = (y+z, x+yz)
@@ -219,7 +230,7 @@ next' n (x, y, z) (i, j, k)
       where
         (jk', ijk') = (j'+k', i'+jk')
         (yz, xyz) = (y+z, x+yz)
--}
+
 {--
 solve :: Int -> U.Vector Int -> Double
 solve n xys = dyna phi psi (collect xys)
