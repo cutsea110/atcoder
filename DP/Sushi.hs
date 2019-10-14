@@ -164,6 +164,17 @@ main = do
   (n, xys) <- getProblem
   print $ solve n (collect xys)
 
+next :: Int -> (Int, Int, Int) -> (Int, Int, Int) -> [(Int, Int, Int)]
+next n (x, y, z) (i, j, k)
+  | i == x && j == y && k == z = []
+  | otherwise = filter p [(i+1, j, k),(i-1, j+1, k),(i, j-1, k+1)]
+  where
+    p (i', j', k') = i' >= 0 && j' >= 0 && k' >= 0 && i'+j'+k' <= n && ijk' <= xyz && jk' <= yz && k' <= z
+      where
+        (jk', ijk') = (j'+k', i'+jk')
+        (yz, xyz) = (y+z, x+yz)
+    
+
 
 solve :: Int -> (Int, Int, Int) -> Double
 solve n ijk = extract (mkMap n ijk Map.! ijk)
