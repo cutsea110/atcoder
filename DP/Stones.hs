@@ -132,7 +132,30 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
+data NonEmptyListF a = NonEmptyListF (U.Vector Int) (Maybe a) deriving (Show, Functor)
+
+type NonEmptyList = Fix NonEmptyListF
+instance Show NonEmptyList where
+  show (In (NonEmptyListF h Nothing)) = show h ++ ":[]"
+  show (In (NonEmptyListF h (Just t))) = show h ++ ":" ++ show t
+
+data Player = First | Second deriving (Show, Eq)
+
 main = do
   (n:k:_) <- getInts
   xs <- getIntVec n
-  print (n, k, xs)
+  print $ bool Second First $ solve xs k
+
+solve vec k = dyna phi psi k
+  where
+    psi 0 = NonEmptyListF U.empty Nothing
+    psi i = NonEmptyListF (U.filter (i>=) vec) (Just (i-1))
+
+    phi :: NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
+    phi (NonEmptyListF vs Nothing) = False
+    phi prev@(NonEmptyListF vs (Just t)) | U.null vs = False
+                                         | otherwise = U.any (\j -> back j prev == False) vs
+
+    back _ (NonEmptyListF _ Nothing) = False
+    back 1 (NonEmptyListF _ (Just t)) = extract t
+    back j (NonEmptyListF _ (Just t)) = back (j-1) (sub t)
