@@ -12,7 +12,7 @@ import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Function (on)
 import qualified Data.Foldable as Foldable
-import Data.List (unfoldr, foldl', sort, (\\), delete, nub)
+import Data.List (unfoldr, foldl', sort, sortBy, (\\), delete, nub)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Vector.Unboxed as U
@@ -132,7 +132,7 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
-data NonEmptyListF a = NonEmptyListF [Int] (Maybe a) deriving (Show, Functor)
+data NonEmptyListF a = NonEmptyListF (Int, [Int]) (Maybe a) deriving (Show, Functor)
 
 type NonEmptyList = Fix NonEmptyListF
 instance Show NonEmptyList where
@@ -146,19 +146,21 @@ main = do
   xs <- getInts
   print $ bool Second First $ solve (sort xs) k
 
-solve :: [Int] -> Int -> Bool
+-- solve :: [Int] -> Int -> Bool
 solve xs = dyna phi psi
   where
-    psi 0 = NonEmptyListF [] Nothing
-    psi i = NonEmptyListF (takeWhile (i>=) xs) (Just (i-1))
+    psi 0 = NonEmptyListF (0, []) Nothing
+    psi i = NonEmptyListF (i, takeWhile (>=0) $ map (i-) xs) (Just (i-1))
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
-    phi (NonEmptyListF bs Nothing) = False
-    phi prev@(NonEmptyListF bs (Just t))
+    phi (NonEmptyListF _ Nothing) = False
+    phi prev@(NonEmptyListF (i, bs) (Just t))
       | null bs = False
-      | otherwise = any (\j -> back j prev == False) bs
+      | otherwise = back bs prev
 
-    back :: Int -> NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
+    back :: [Int] -> NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
     back _ (NonEmptyListF _ Nothing) = False
-    back 1 (NonEmptyListF _ (Just t)) = extract t
-    back j (NonEmptyListF _ (Just t)) = back (j-1) (sub t)
+    back [] (NonEmptyListF _ (Just t)) = False
+    back kks@(k:ks) (NonEmptyListF (j, _) (Just t))
+      | k+1 == j = extract t == False || back ks (sub t)
+      | otherwise = back kks (sub t)
