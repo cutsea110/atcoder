@@ -146,11 +146,11 @@ main = do
   xs <- getInts
   print $ bool Second First $ solve (sort xs) k
 
--- solve :: [Int] -> Int -> Bool
+solve :: [Int] -> Int -> Bool
 solve xs = dyna phi psi
   where
     psi 0 = NonEmptyListF (0, []) Nothing
-    psi i = NonEmptyListF (i, takeWhile (>=0) $ map (i-) xs) (Just (i-1))
+    psi i = NonEmptyListF (i, (takeWhile (>=0) . map (i-)) xs) (Just (i-1))
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
     phi (NonEmptyListF _ Nothing) = False
