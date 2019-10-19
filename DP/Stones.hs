@@ -147,20 +147,20 @@ main = do
   print $ bool Second First $ solve (sort xs) k
 
 solve :: [Int] -> Int -> Bool
-solve xs = dyna phi psi
+solve !xs = dyna phi psi
   where
     psi 0 = NonEmptyListF (0, []) Nothing
     psi i = NonEmptyListF (i, (takeWhile (>=0) . map (i-)) xs) (Just (i-1))
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
     phi (NonEmptyListF _ Nothing) = False
-    phi prev@(NonEmptyListF (i, bs) (Just t))
+    phi prev@(NonEmptyListF (i, !bs) (Just !t))
       | null bs = False
       | otherwise = back bs prev
 
     back :: [Int] -> NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
     back _ (NonEmptyListF _ Nothing) = False
-    back [] (NonEmptyListF _ (Just t)) = False
+    back [] (NonEmptyListF _ (Just !t)) = False
     back kks@(k:ks) (NonEmptyListF (j, _) (Just t))
       | k+1 == j = extract t == False || back ks (sub t)
-      | otherwise = back kks (sub t)
+      | otherwise = back kks $! sub t
