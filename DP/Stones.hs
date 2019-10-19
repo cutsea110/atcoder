@@ -132,7 +132,7 @@ paran (c, f) n = f n (paran (c, f) (n-1))
 
 ---------------------------------------------------------
 
-data NonEmptyListF a = NonEmptyListF (U.Vector Int) (Maybe a) deriving (Show, Functor)
+data NonEmptyListF a = NonEmptyListF [Int] (Maybe a) deriving (Show, Functor)
 
 type NonEmptyList = Fix NonEmptyListF
 instance Show NonEmptyList where
@@ -143,19 +143,22 @@ data Player = First | Second deriving (Show, Eq)
 
 main = do
   (n:k:_) <- getInts
-  xs <- getIntVec n
-  print $ bool Second First $ solve xs k
+  xs <- getInts
+  print $ bool Second First $ solve (sort xs) k
 
-solve vec k = dyna phi psi k
+solve :: [Int] -> Int -> Bool
+solve xs = dyna phi psi
   where
-    psi 0 = NonEmptyListF U.empty Nothing
-    psi i = NonEmptyListF (U.filter (i>=) vec) (Just (i-1))
+    psi 0 = NonEmptyListF [] Nothing
+    psi i = NonEmptyListF (takeWhile (i>=) xs) (Just (i-1))
 
     phi :: NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
-    phi (NonEmptyListF vs Nothing) = False
-    phi prev@(NonEmptyListF vs (Just t)) | U.null vs = False
-                                         | otherwise = U.any (\j -> back j prev == False) vs
+    phi (NonEmptyListF bs Nothing) = False
+    phi prev@(NonEmptyListF bs (Just t))
+      | null bs = False
+      | otherwise = any (\j -> back j prev == False) bs
 
+    back :: Int -> NonEmptyListF (Cofree NonEmptyListF Bool) -> Bool
     back _ (NonEmptyListF _ Nothing) = False
     back 1 (NonEmptyListF _ (Just t)) = extract t
     back j (NonEmptyListF _ (Just t)) = back (j-1) (sub t)
