@@ -162,5 +162,5 @@ solve !xs = dyna phi psi
     back _ (NonEmptyListF _ Nothing) = False
     back [] (NonEmptyListF _ (Just !t)) = False
     back kks@(k:ks) (NonEmptyListF (j, _) (Just t))
-      | k+1 == j = extract t == False || back ks (sub t)
+      | k+1 == j = extract t == False || (back ks $! sub t)
       | otherwise = back kks $! sub t
