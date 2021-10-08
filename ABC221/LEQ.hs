@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -O2 #-}
 {-# LANGUAGE TupleSections #-}
 module Main where
 
@@ -57,8 +58,4 @@ getProblem = do
 main :: IO ()
 main = do
   (n, v) <- getProblem'
-  print $ (solve [ ((i, j), (v U.! i, v U.! j)) | i <- [0..n-1], j <-[i+1..n-1], v U.! i <= v U.! j ]) `mod` largeNum
-
-solve = foldr f 0
-  where
-    f ((i, j), (x, y)) c = c + 2^(j-i-1)
+  print $ (sum [ 2^(j-i-1) | i <- [0..n-1], j <- [i+1..n-1], v U.! i <= v U.! j ]) `mod` largeNum
