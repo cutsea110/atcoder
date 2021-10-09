@@ -61,18 +61,20 @@ getProblem = do
 -- main :: IO ()
 main = do
   (n, v) <- getProblem
-  let vs = V.fromList $ inverse v
-  let xs = [ sum xs `mod` largeNum | j <- [0..n-1], let xs = map (\i -> 2^(j-i-1)) (snd (vs V.! j)) ]
-  print $ sum  xs `mod` largeNum
-  -- print $ (sum [ 2^(j-i-1) | i <- [0..n-1], j <- [i+1..n-1], v U.! i <= v U.! j ]) `mod` largeNum
+  let vs = V.fromList $ small v
+  let xs = V.ifoldl' f 0 vs
+  print xs
+    where f acc j (_, is) = (acc + foldl' g 0 is) `mod` largeNum
+            where g d i = (d + 2^(j-i-1)) `mod` largeNum
 
-inverse :: [Int] -> [(Int, [Int])]
-inverse xs = go (zip [0..] xs) t []
+
+small :: [Int] -> [(Int, [Int])]
+small xs = go (zip [0..] xs) t []
   where
     bw = bitWidth (10^9+10)
     t = new bw
     go []             t acc = zip xs (reverse acc)
-    go (ix@(i, x):xs) t acc = let acc' = ({- t ! (2^bw-1) \\ -} t ! x) : acc
+    go (ix@(i, x):xs) t acc = let acc' = (t ! x) : acc
                                   t' = inc x [i] t -- Monoid は [a]
                               in go xs t' acc'
 
