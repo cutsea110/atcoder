@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -O2 #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE BangPatterns #-}
 module Main where
 
 import Control.Monad
@@ -16,6 +17,30 @@ import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.ByteString.Char8 as C
+
+{- |
+-- mod 13 における (2^3) の逆数 1/(2^3) を求める
+>>> modInv 13 (2^3)
+5
+-- 5 が (2~3) の逆数なので (2^3) と書ければ 1 になる
+>>> (2^3) * 5 `mod` 13
+1
+-}
+modInv :: Int -> Int -> Int
+modInv g p = f 1 0 p 0 1 g
+  where f px py pgcd x y gcd
+          | m == 0 = (x+g) `mod` g
+          | otherwise = f x y gcd (px-(d*x)) (py-(d*y)) m
+          where (d, m) = pgcd `divMod` gcd
+
+modPower :: Integral a => a -> a -> a -> a
+modPower g x p
+  | p == 0 = 1
+  | p == 1 = x `mod` g
+  | otherwise = (((x' * x') `mod` g) * k) `mod` g
+  where (d, m) = p `divMod` 2
+        x' = modPower g x d
+        k = if m == 0 then 1 else x
 
 type Parser a = C.ByteString -> Maybe (a, C.ByteString)
 
@@ -74,7 +99,7 @@ small xs = go (zip [0..] xs) t []
     bw = bitWidth (10^9+10)
     t = new bw
     go []             t acc = zip xs (reverse acc)
-    go (ix@(i, x):xs) t acc = let acc' = (t ! x) : acc
+    go (ix@(i, x):xs) t acc = let acc' = query t x : acc
                                   t' = inc x [i] t -- Monoid は [a]
                               in go xs t' acc'
 
@@ -139,15 +164,11 @@ inc i x (BIT k root) = BIT k $ f root (k-1) 0
 {- |
 Lookup the sum of all values from index 1 to index i. O(log n)
 -}
-(!) :: Monoid a => BIT a -> Int -> a
-BIT k root ! i = f root (k-1) mempty
+query :: Monoid a => BIT a -> Int -> a
+query (BIT k root) i = f root (k-1) mempty
   where f Empty _ acc = acc
         f (Node x l r) j acc
           | i `testBit` j = acc' `seq` f l j' acc'
           | otherwise     = f r j' acc
           where j'   = j-1
                 acc' = acc `mappend` x
-
-
------------------------------------------------
-
