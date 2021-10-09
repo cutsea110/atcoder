@@ -2,16 +2,20 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Main where
 
+import Control.Arrow
 import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.Bits
 import Data.Char
+import Data.Function (on)
 import Data.List
 import qualified Data.Tree as T
 import qualified Data.Vector as V
+import qualified Data.Vector.Algorithms.Intro as Intro
 import qualified Data.Vector.Mutable as VM
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as UM
@@ -102,6 +106,30 @@ small xs = go (zip [0..] xs) t []
     go (ix@(i, x):xs) t acc = let acc' = query t x : acc
                                   t' = inc x [i] t -- Monoid は [a]
                               in go xs t' acc'
+
+{- | 座標圧縮
+-}
+compress :: (Num a, Ord a, UM.Unbox a) => U.Vector a -> U.Vector a
+compress vs = runST $ do
+  let indexed = U.indexed vs
+  let sorted = U.modify (Intro.sortBy (compare `on` snd)) indexed
+  ss <- U.thaw sorted
+  comp ss 0 (0, 0)
+  ss' <- U.freeze ss
+  let restored = U.modify (Intro.sortBy (compare `on` fst)) ss'
+  return $ U.map snd restored
+
+{- |
+前提: v は snd について sort 済とする
+-}
+comp vec i (ix, x) = do
+  let n = UM.length vec
+  if i > n-1 then return ()
+    else do
+      (j, y) <- UM.read vec i
+      let (ix', x') = if y > x then (ix+1, y) else (ix, x)
+      UM.modify vec (second $ const ix') i
+      comp vec (i+1) (ix', x')
 
 -- UTILITY
 
