@@ -35,14 +35,14 @@ modInv :: Int -> Int -> Int
 modInv g p = f 1 0 p 0 1 g
   where f px py pgcd x y gcd
           | m == 0 = (x+g) `mod` g
-          | otherwise = f x y gcd (px-(d*x)) (py-(d*y)) m
+          | otherwise = f x y gcd (px-d*x) (py-d*y) m
           where (d, m) = pgcd `divMod` gcd
 
 modPower :: Integral a => a -> a -> a -> a
 modPower g x p
   | p == 0 = 1
   | p == 1 = x `mod` g
-  | otherwise = (((x' * x') `mod` g) * k) `mod` g
+  | otherwise = x' * x' `mod` g * k `mod` g
   where (d, m) = p `divMod` 2
         x' = modPower g x d
         k = if m == 0 then 1 else x
@@ -74,7 +74,7 @@ getTuple = do
 -- Main
 ------------------------------------------------
 
-modulo = 998244353
+const_MODULO = 998244353
 
 getProblem' :: IO (Int, U.Vector Int)
 getProblem' = do
@@ -97,25 +97,25 @@ main = do
 ---------------------------------------------------
 -- BIT の (<>) も mod計算する
 instance Semigroup Int where
-  x <> y = (x + y) `mod` modulo
+  x <> y = (x + y) `mod` const_MODULO
 
 instance Monoid Int where
   mempty = 0
 ---------------------------------------------------
 
 solve :: Int -> U.Vector Int -> Int
-solve n v = runST $ do
-  let (modInv', modPower') = (modInv modulo, modPower modulo)
-  let modPlus x y = (x + y) `mod` modulo
+solve maxVal v = runST $ do
+  let n = U.length v
+  let (modInv', modPow') = (modInv const_MODULO, modPower const_MODULO)
 
-  wk <- new n :: ST s (UM.MVector (PrimState (ST s)) Int)
+  wk <- new maxVal
   result <- newSTRef 0
 
-  forM_ [0..(U.length v - 1)] $ \i -> do
+  forM_ [0..n - 1] $ \i -> do
     let a = v U.! i
     w <- sumTo wk a
-    modifySTRef' result (\ans -> (modPower' 2 i * w) `modPlus` ans)
-    inc a (modInv' (modPower' 2 (i+1))) wk
+    modifySTRef' result (modPow' 2 i * w <>)
+    inc a (modInv' (modPow' 2 (i+1))) wk
 
   readSTRef result
 
@@ -129,7 +129,7 @@ monotone vs = runST $ do
   (newMax, _origMax) <- comp ss (UM.length ss) 0 (0, 0)
   ss' <- U.freeze ss
   let restored = U.modify (Intro.sortBy (compare `on` fst)) ss'
-  return $ (newMax, U.map snd restored)
+  return (newMax, U.map snd restored)
   where
     {- | 前提: v は snd について sort 済とする-}
     comp vec n i (ix, x) = do
@@ -153,6 +153,9 @@ new :: (PrimMonad m, Monoid a, UM.Unbox a)
 new n = do
   UM.replicate (n+1) mempty
 
+{- |
+i に w を加算
+-}
 inc :: (PrimMonad m, Monoid a, UM.Unbox a)
     => Int -> a -> UM.MVector (PrimState m) a -> m ()
 inc i w v = do
@@ -162,6 +165,9 @@ inc i w v = do
     UM.modify v (<>w) i
     inc (i + (i .&. negate i)) w v
 
+{- |
+i までの総和
+-}
 sumTo :: (PrimMonad m, Monoid a, UM.Unbox a)
       => UM.MVector (PrimState m) a -> Int -> m a
 sumTo v i = do
