@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -O2 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
@@ -25,8 +26,8 @@ import qualified Data.ByteString.Char8 as C
 
 extEuclid :: Integral a => a -> a -> (a, (a, a))
 extEuclid x y = psi x y (1, 0) (0, 1)
-  where psi x 0 p _ = (x, p)
-        psi x y p q = psi y m q (p |-| d |*| q)
+  where psi x 0 p@(!p1, !p2) _            = (x, p)
+        psi x y p@(!p1, !p2) q@(!q1, !q2) = psi y m q (p |-| d |*| q)
           where (d, m) = x `divMod` y
 
 (|*|) :: Integral a => a -> (a, a) -> (a, a)
