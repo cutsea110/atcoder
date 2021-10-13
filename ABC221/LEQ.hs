@@ -23,6 +23,20 @@ import qualified Data.Vector.Unboxed.Mutable as UM
 import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.ByteString.Char8 as C
 
+extEuclid :: Integral a => a -> a -> (a, (a, a))
+extEuclid x y = psi x y (1, 0) (0, 1)
+  where psi x 0 p _ = (x, p)
+        psi x y p q = psi y m q (p |+| negate d |*| q)
+          where (d, m) = x `divMod` y
+
+(|*|) :: Integral a => a -> (a, a) -> (a, a)
+s |*| (x, y) = (s*x, s*y)
+infixl 7 |*|
+
+(|+|) :: Integral a => (a, a) -> (a, a) -> (a, a)
+(x1, y1) |+| (x2, y2) = (x1+x2, y1+y2)
+infixl 6 |+|
+
 {- |
 -- mod 13 における (2^3) の逆数 1/(2^3) を求める
 >>> modInv 13 (2^3)
@@ -31,12 +45,9 @@ import qualified Data.ByteString.Char8 as C
 >>> (2^3) * 5 `mod` 13
 1
 -}
-modInv :: Int -> Int -> Int
-modInv g p = f 1 0 p 0 1 g
-  where f px py pgcd x y gcd
-          | m == 0 = (x+g) `mod` g
-          | otherwise = f x y gcd (px-d*x) (py-d*y) m
-          where (d, m) = pgcd `divMod` gcd
+modInv :: Integral a => a -> a -> a
+modInv g p = if x < 0 then x + g else x
+  where (_, (_, x)) = extEuclid g p
 
 modPower :: Integral a => a -> a -> a -> a
 modPower g x p
