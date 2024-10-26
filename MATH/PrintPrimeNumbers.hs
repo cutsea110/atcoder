@@ -40,7 +40,6 @@ morph f g = u
                 in ps ++ g ((max 2 (m+1), n), ps)
 
 primes :: Integer -> [Integer]
-primes 2 = [2]
 primes n = morph f g n
   where
     f :: Integer -> Integer
