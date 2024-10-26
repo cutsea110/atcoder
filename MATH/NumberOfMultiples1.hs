@@ -29,4 +29,4 @@ getTuple = do
 
 main = do
   n:x:y:_ <- getInts
-  print $ n `div` x + n `div` y - n `div` (x * y)
+  print $ n `div` x + n `div` y - n `div` lcm x y
