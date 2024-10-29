@@ -1,4 +1,6 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns
+           , LambdaCase
+#-}
 module Main where
 
 import GHC.Real (toInteger)
@@ -58,6 +60,55 @@ insert ks i k = do
           if i-1 > 0
             then insert ks (i-1) k
             else writeArray ks i k
+
+-- bubble sort (known length)
+bubbleSort :: Ord a => Int -> [a] -> [a]
+bubbleSort n ks = runST $ do
+  a <- newListArray (1, n) ks
+  bsort n a
+  getElems a
+
+bsort :: Ord a => Int -> STArray s Int a -> ST s ()
+bsort bound ks = swap ks 0 [1..bound-1] >>= \t ->
+  if t == 0
+  then return ()
+  else bsort t ks
+
+swap :: Ord a => STArray s Int a -> Int -> [Int] -> ST s Int
+swap ks t = \case
+  [] -> return t
+  (j:js) -> do
+    kj <- readArray ks j
+    kj1 <- readArray ks (j+1)
+    if kj > kj1
+      then do writeArray ks j kj1
+              writeArray ks (j+1) kj
+              swap ks j js
+      else swap ks t js
+
+-- selection sort (known length)
+selectionSort :: Ord a => Int -> [a] -> [a]
+selectionSort n ks = runST $ do
+  a <- newListArray (1, n) ks
+  ssort n a
+  getElems a
+
+ssort :: Ord a => Int -> STArray s Int a -> ST s ()
+ssort n ks = forM_ [n, n-1 .. 2] $ \j -> do
+  i <- findMax ks j (j-1)
+  ki <- readArray ks i
+  kj <- readArray ks j
+  writeArray ks i kj
+  writeArray ks j ki
+
+findMax :: Ord a => STArray s Int a -> Int -> Int -> ST s Int
+findMax ks i k = do
+  ki <- readArray ks i
+  kk <- readArray ks k
+  let i' = if ki >= kk then i else k
+  if k > 1
+    then findMax ks i' (k-1)
+    else return i'
 
 --------------------------------------------------------------------------------
 
