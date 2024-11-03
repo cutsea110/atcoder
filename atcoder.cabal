@@ -17,7 +17,7 @@ build-type:          Simple
 extra-source-files:  README.md, CHANGELOG.md
 
 executable atcoder
-  main-is:             MATH/Distance.hs
+  main-is:             MATH/NearestPoints.hs
   -- other-modules:
   -- other-extensions:
   -- ghc-options:        -ddump-prep -dsuppress-idinfo -dsuppress-coercions -dsuppress-type-applications -dsuppress-uniques -dsuppress-module-prefixes -rtsopts -fprof-auto -prof
