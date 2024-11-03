@@ -45,7 +45,7 @@ main = do
   U.forM_ (solve t ts) print
 
 solve :: Int -> [(Int, Int)] -> U.Vector Int
-solve t ts = U.slice 1 10 $! U.scanl' (+) 0 acc
+solve t ts = U.slice 1 t $! U.scanl' (+) 0 acc
   where
     !init = U.replicate (t+1) 0
     !acc = U.accum (+) init $ concatMap f ts
