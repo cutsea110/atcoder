@@ -59,7 +59,7 @@ primes :: Integer -> [Integer]
 primes n = morph f g n
   where
     f :: Integer -> Integer
-    f n = fromInteger $ floor $ sqrt $ fromInteger n
+    f n = floor $ sqrt $ fromInteger n
     g :: ((Integer, Integer), [Integer]) -> [Integer]
     g ((x, y), ps) = filter (\z -> all (\p -> z `mod` p /= 0) ps) [x..y]
 
